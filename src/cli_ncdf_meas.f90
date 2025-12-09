@@ -428,9 +428,9 @@ contains
                 stop
             endif
         else
-            write (*,*) "WARNING: No ", trim(var_name), " variable found in NetCDF, code:", status
-            write (9003,*) "WARNING: No ", trim(var_name), " variable found in NetCDF, code:", status
-            var_data = 0.0  ! Fill with zeros if variable not found
+            write (*,*) trim(var_name), " will use wgn"
+            write (9003,*) "WARNING: ", trim(var_name), " was not found in NetCDF, wgn will be used, code:", status
+            var_data = -99.0  ! Fill with -99 if variable not found for missing data
         endif
         
     end subroutine read_climate_variable

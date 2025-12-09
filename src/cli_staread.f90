@@ -60,7 +60,6 @@ subroutine cli_staread
                wst(iwst)%wco_c%hgage = ""
                wst(iwst)%wco_c%wgage = ""
                wst(iwst)%wco_c%petgage = ""
-               wst(iwst)%wco_c%atmodep = ""
             end do
 
             rewind (107)
@@ -81,7 +80,7 @@ subroutine cli_staread
                read (107,*,iostat=eof) wst(i)%name, wst(i)%wco_c%wgn, wst(i)%lat, wst(i)%lon, wst(i)%elev, &
                   wst(i)%pcp_factor, wst(i)%tmin_factor, wst(i)%tmax_factor, &
                   wst(i)%slr_factor, wst(i)%hmd_factor, wst(i)%wnd_factor, &
-                  wst(i)%wco_c%petgage, wst(i)%wco_c%atmodep, wst(i)%wco_c%atmodep
+                  wst(i)%wco_c%petgage
                if (eof < 0) exit
                wst_n(i) = wst(i)%name
                if (db_mx%wgnsta > 0) call search (wgn_n, db_mx%wgnsta, wst(i)%wco_c%wgn, wst(i)%wco%wgn)
@@ -118,6 +117,8 @@ subroutine cli_staread
                else
                   wst(i)%wco_c%wgage = "sim"
                end if
+
+               wst(i)%wco_c%atmodep = wst(i)%name
                
                ! note: For NetCDF, the numeric indices (wco%*gage) will be set by cli_ncdf_meas
                ! based on the station index. Traditional system use search() to map file names to indices
@@ -127,6 +128,7 @@ subroutine cli_staread
                   iwgn = wst(i)%wco%wgn
                   wst(i)%tlag = (wgn(iwgn)%tmpmn(1) + wgn(iwgn)%tmpstdmx(1)) / 2.
                end if
+               
                if (eof < 0) exit
             end do
             exit
@@ -201,9 +203,6 @@ subroutine cli_staread
                !if (wst(i)%wco%petgage == 0 .and. wst(i)%wco_c%petgage /= "sim" ) write (9001,*) &
                if (wst(i)%wco%petgage == 0 .and. wst(i)%wco_c%petgage /= "null" ) write (9001,*) &
                   wst(i)%wco_c%petgage, "file not found (petgage)"
-               if (db_mx%atmodep > 0) call search (atmo_n, db_mx%atmodep, wst(i)%wco_c%atmodep, wst(i)%wco%atmodep)
-               if (wst(i)%wco%atmodep == 0 .and. wst(i)%wco_c%atmodep /= "null" ) write (9001,*) &
-                  wst(i)%wco_c%atmodep, "file not found (atmodep)"
 
                if (eof < 0) exit
             end do
@@ -211,6 +210,14 @@ subroutine cli_staread
          enddo
       endif
    endif
+
+   ! Atmospheric deposition linkage - UNIVERSAL for both NetCDF and text-based climate systems
+   ! This runs after reading weather station files (either netcdf.ncw or weather.wst)
+   do i = 1, db_mx%wst
+      if (db_mx%atmodep > 0) call search (atmo_n, db_mx%atmodep, wst(i)%wco_c%atmodep, wst(i)%wco%atmodep)
+      if (wst(i)%wco%atmodep == 0 .and. wst(i)%wco_c%atmodep /= "null" ) write (9001,*) &
+         wst(i)%wco_c%atmodep, "file not found (atmodep)"
+   end do
 
    close (107)
 
