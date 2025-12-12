@@ -21,6 +21,11 @@
       
       implicit none
       
+      external :: cs_fert, cs_fert_wet, curno, mgt_harvbiomass, mgt_harvgrain, mgt_harvresidue, &
+                  mgt_harvtuber, mgt_killop, mgt_newtillmix, mgt_newtillmix_wet, mgt_plantop, pest_apply, &
+                  pl_burnop, pl_fert, pl_fert_wet, pl_manure, salt_fert, salt_fert_wet, chg_par, &
+                  mgt_transplant
+      
       integer :: icom = 0          !         |  
       integer :: idp = 0           !         |
       integer :: j = 0             !none     |counter
@@ -52,6 +57,7 @@
       real :: harveff = 0.
       integer :: idb = 0           !none     |counter
       integer :: itr = 0
+      integer :: iwr = 0           !none     |weir counter Chawanda 2025
 
       j = ihru
       ires= hru(j)%dbs%surf_stor ! for paddy management Jaehak 2022
@@ -97,13 +103,22 @@
                         exit
                       endif
                     end do
-                    if (itr > 0) call mgt_transplant (itr)
-                  end if
-                  if (pco%mgtout ==  "y") then
-                    write (2612, *) j, time%yrc, time%mo, time%day_mo, pldb(idp)%plantnm,  "    PLANT ",    &
-                      phubase(j), pcom(j)%plcur(ipl)%phuacc,  soil(j)%sw,                                   &
-                      pl_mass(j)%tot(ipl)%m, soil1(j)%rsd(1)%m, sol_sumno3(j),                              &
-                      sol_sumsolp(j),pcom(j)%plg(ipl)%lai, pcom(j)%plcur(ipl)%lai_pot
+                    if (itr > 0) then
+                      call mgt_transplant (itr)
+                      if (pco%mgtout ==  "y") then
+                        write (2612, *) j, time%yrc, time%mo, time%day_mo, pldb(idp)%plantnm,  "TRANSPLANT ",    &
+                          phubase(j), pcom(j)%plcur(ipl)%phuacc,  soil(j)%sw,                                   &
+                          pl_mass(j)%tot(ipl)%m, soil1(j)%rsd(1)%m, sol_sumno3(j),                              &
+                          sol_sumsolp(j),pcom(j)%plg(ipl)%lai, pcom(j)%plcur(ipl)%lai_pot
+                      end if
+                    else
+                      if (pco%mgtout ==  "y") then
+                        write (2612, *) j, time%yrc, time%mo, time%day_mo, pldb(idp)%plantnm,  "    PLANT ",    &
+                          phubase(j), pcom(j)%plcur(ipl)%phuacc,  soil(j)%sw,                                   &
+                          pl_mass(j)%tot(ipl)%m, soil1(j)%rsd(1)%m, sol_sumno3(j),                              &
+                          sol_sumsolp(j),pcom(j)%plg(ipl)%lai, pcom(j)%plcur(ipl)%lai_pot
+                      end if
+                    end if
                   end if
                 else
                   !! don't plant if the crop is already growing
@@ -139,78 +154,85 @@
 
             do ipl = 1, pcom(j)%npl
               if (pcom(j)%plcur(ipl)%gro == "y") then
-              biomass = pl_mass(j)%tot(ipl)%m
-              if (mgt%op_char == pcomdb(icom)%pl(ipl)%cpnm .or. mgt%op_char == "all") then
-                pcom(j)%days_harv = 1       !reset days since last harvest    
-                  
-                !check minimum biomass for harvest
-                if (biomass > harvop_db(iharvop)%bm_min) then
-                !harvest specific type
-                select case (harvop_db(iharvop)%typ)
-                case ("biomass")
-                  call mgt_harvbiomass (j, ipl, iharvop)
-                case ("grain")
-                  call mgt_harvgrain (j, ipl, iharvop)
-                case ("residue")
-                  harveff = mgt%op3
-                  call mgt_harvresidue (j, harveff)
-                case ("tree")
-                  call mgt_harvbiomass (j, ipl, iharvop)
-                case ("tuber")
-                  call mgt_harvtuber (j, ipl, iharvop)
-                case ("peanuts")
-                  call mgt_harvtuber (j, ipl, iharvop)
-                case ("stripper")
-                  call mgt_harvbiomass (j, ipl, iharvop)
-                case ("picker")
-                  call mgt_harvgrain (j, ipl, iharvop)
-                end select
-                end if
-
-                !! sum yield and number of harvest to calc ave yields
-                pl_mass(j)%yield_tot(ipl) = pl_mass(j)%yield_tot(ipl) + pl_yield
-                pl_mass(j)%yield_yr(ipl) = pl_mass(j)%yield_yr(ipl) + pl_yield
-                pcom(j)%plcur(ipl)%harv_num = pcom(j)%plcur(ipl)%harv_num + 1
-                pcom(j)%plcur(ipl)%harv_num_yr = pcom(j)%plcur(ipl)%harv_num_yr + 1
-                
-                !! sum basin crop yields and area harvested
-                iplt_bsn = pcom(j)%plcur(ipl)%bsn_num
-                bsn_crop_yld(iplt_bsn)%area_ha = bsn_crop_yld(iplt_bsn)%area_ha + hru(j)%area_ha
-                bsn_crop_yld(iplt_bsn)%yield = bsn_crop_yld(iplt_bsn)%yield + pl_yield%m * hru(j)%area_ha / 1000.
-                
-                !! sum regional crop yields for soft calibration
-                if (cal_codes%plt == "y") then
-                  if (hru(j)%crop_reg > 0) then
-                    ireg = hru(j)%crop_reg
-                    do ilum = 1, plcal(ireg)%lum_num
-                      if (plcal(ireg)%lum(ilum)%meas%name == mgt%op_char) then
-                        plcal(ireg)%lum(ilum)%ha = plcal(ireg)%lum(ilum)%ha + hru(j)%area_ha
-                        plcal(ireg)%lum(ilum)%sim%yield = plcal(ireg)%lum(ilum)%sim%yield + pl_yield%m * hru(j)%area_ha / 1000.
-                      end if
-                    end do
+                biomass = pl_mass(j)%tot(ipl)%m
+                if (mgt%op_char == pcomdb(icom)%pl(ipl)%cpnm .or. mgt%op_char == "all") then
+                  pcom(j)%days_harv = 1       !reset days since last harvest    
+                    
+                  !check minimum biomass for harvest
+                  if (biomass > harvop_db(iharvop)%bm_min) then
+                    !harvest specific type
+                    select case (harvop_db(iharvop)%typ)
+                    case ("biomass")
+                      call mgt_harvbiomass (j, ipl, iharvop)
+                    case ("grain")
+                      call mgt_harvgrain (j, ipl, iharvop)
+                    case ("residue")
+                      harveff = mgt%op3
+                      call mgt_harvresidue (j, harveff, iharvop)
+                    case ("tree")
+                      call mgt_harvbiomass (j, ipl, iharvop)
+                    case ("tuber")
+                      call mgt_harvtuber (j, ipl, iharvop)
+                    case ("peanuts")
+                      call mgt_harvtuber (j, ipl, iharvop)
+                    case ("stripper")
+                      call mgt_harvbiomass (j, ipl, iharvop)
+                    case ("picker")
+                      call mgt_harvgrain (j, ipl, iharvop)
+                    end select
                   end if
+
+                  !! sum yield and number of harvest to calc ave yields
+                  pl_mass(j)%yield_tot(ipl) = pl_mass(j)%yield_tot(ipl) + pl_yield
+                  pl_mass(j)%yield_yr(ipl) = pl_mass(j)%yield_yr(ipl) + pl_yield
+                  pcom(j)%plcur(ipl)%harv_num = pcom(j)%plcur(ipl)%harv_num + 1
+                  pcom(j)%plcur(ipl)%harv_num_yr = pcom(j)%plcur(ipl)%harv_num_yr + 1
+                  
+                  !! sum basin crop yields and area harvested
+                  iplt_bsn = pcom(j)%plcur(ipl)%bsn_num
+                  bsn_crop_yld(iplt_bsn)%area_ha = bsn_crop_yld(iplt_bsn)%area_ha + hru(j)%area_ha
+                  bsn_crop_yld(iplt_bsn)%yield = bsn_crop_yld(iplt_bsn)%yield + pl_yield%m * hru(j)%area_ha / 1000.
+                  
+                  !! sum regional crop yields for soft calibration
+                  if (cal_codes%plt == "y") then
+                    if (hru(j)%crop_reg > 0) then
+                      ireg = hru(j)%crop_reg
+                      do ilum = 1, plcal(ireg)%lum_num
+                        if (plcal(ireg)%lum(ilum)%meas%name == mgt%op_char) then
+                          plcal(ireg)%lum(ilum)%ha = plcal(ireg)%lum(ilum)%ha + hru(j)%area_ha
+                          plcal(ireg)%lum(ilum)%sim%yield = plcal(ireg)%lum(ilum)%sim%yield + pl_yield%m * hru(j)%area_ha / 1000.
+                        end if
+                      end do
+                    end if
+                  end if
+              
+                  idp = pcom(j)%plcur(ipl)%idplt
+                  if (pco%mgtout == "y") then
+                    write (2612, *) j, time%yrc, time%mo, time%day_mo,  pldb(idp)%plantnm, "    HARVEST ",    &
+                        phubase(j), pcom(j)%plcur(ipl)%phuacc, soil(j)%sw, biomass, soil1(j)%rsd(1)%m,   &
+                        sol_sumno3(j), sol_sumsolp(j), pl_yield%m, pcom(j)%plstr(ipl)%sum_n,              &
+                        pcom(j)%plstr(ipl)%sum_p, pcom(j)%plstr(ipl)%sum_tmp, pcom(j)%plstr(ipl)%sum_w,   &
+                        pcom(j)%plstr(ipl)%sum_a
+                  end if 
                 end if
-            
-                idp = pcom(j)%plcur(ipl)%idplt
-                if (pco%mgtout == "y") then
-                  write (2612, *) j, time%yrc, time%mo, time%day_mo,  pldb(idp)%plantnm, "    HARVEST ",    &
-                      phubase(j), pcom(j)%plcur(ipl)%phuacc, soil(j)%sw, biomass, soil1(j)%rsd(1)%m,   &
-                      sol_sumno3(j), sol_sumsolp(j), pl_yield%m, pcom(j)%plstr(ipl)%sum_n,              &
-                      pcom(j)%plstr(ipl)%sum_p, pcom(j)%plstr(ipl)%sum_tmp, pcom(j)%plstr(ipl)%sum_w,   &
-                      pcom(j)%plstr(ipl)%sum_a
-                end if 
-              end if
               !pcom(j)%plcur(ipl)%phuacc = 0.
+              else   ! for when the crop is not living.
+                select case (harvop_db(iharvop)%typ)
+                  case ("residue")
+                    harveff = mgt%op3
+                    call mgt_harvresidue (j, harveff, iharvop)
+                end select
               end if
             end do
           
-            case ("kill")   !! kill operation
-              do ipl = 1, pcom(j)%npl
+          case ("kill")   !! kill operation
+            do ipl = 1, pcom(j)%npl
+              if (pcom(j)%plcur(ipl)%gro == "y") then
                 biomass = pl_mass(j)%tot(ipl)%m
                 if (mgt%op_char == pcomdb(icom)%pl(ipl)%cpnm .or. mgt%op_char == "all") then
                   pcom(j)%days_kill = 1       !reset days since last kill   
                   call mgt_killop (j, ipl)
-  
+
                   idp = pcom(j)%plcur(ipl)%idplt
                   if (pco%mgtout == "y") then
                     write (2612, *) j, time%yrc, time%mo, time%day_mo,  pldb(idp)%plantnm, "    KILL ",  &
@@ -219,79 +241,89 @@
                       pcom(j)%plstr(ipl)%sum_p, pcom(j)%plstr(ipl)%sum_tmp, pcom(j)%plstr(ipl)%sum_w,   &
                       pcom(j)%plstr(ipl)%sum_a
                   end if 
-                end if
-                pcom(j)%plcur(ipl)%phuacc = 0.
-              end do
+                endif
+              end if
+              pcom(j)%plcur(ipl)%phuacc = 0.
+            end do
        
           case ("hvkl")   !! harvest and kill operation
             iharvop = mgt%op1
 
             do ipl = 1, pcom(j)%npl
+              if (pcom(j)%plcur(ipl)%gro == "y") then
               biomass = pl_mass(j)%tot(ipl)%m
-              if (mgt%op_char == pcomdb(icom)%pl(ipl)%cpnm .or. mgt%op_char == "all") then
-                pcom(j)%days_harv = 1       !reset days since last harvest
-                pcom(j)%days_kill = 1       !reset days since last kill       
+                if (mgt%op_char == pcomdb(icom)%pl(ipl)%cpnm .or. mgt%op_char == "all") then
+                  pcom(j)%days_harv = 1       !reset days since last harvest
+                  pcom(j)%days_kill = 1       !reset days since last kill       
+                    
+                  !check minimum biomass for harvest
+                  if (biomass > harvop_db(iharvop)%bm_min) then
+                    !harvest specific type
+                    select case (harvop_db(iharvop)%typ)
+                      case ("biomass")    
+                        call mgt_harvbiomass (j, ipl, iharvop)
+                      case ("grain")
+                        call mgt_harvgrain (j, ipl, iharvop)
+                      case ("residue")
+                        harveff = mgt%op3
+                        call mgt_harvresidue (j, harveff, iharvop)
+                      case ("tree")
+                      case ("tuber")
+                        call mgt_harvtuber (j, ipl, iharvop)
+                      case ("peanuts")
+                        call mgt_harvtuber (j, ipl, iharvop)
+                      case ("stripper")
+                        call mgt_harvgrain (j, ipl, iharvop)
+                      case ("picker")
+                        call mgt_harvgrain (j, ipl, iharvop)
+                    end select
+                  end if
+
+                  call mgt_killop (j, ipl)
+
+                  !! sum yield and num. of harvest to calc ave yields
+                  pl_mass(j)%yield_tot(ipl) = pl_mass(j)%yield_tot(ipl) + pl_yield
+                  pl_mass(j)%yield_yr(ipl) = pl_mass(j)%yield_yr(ipl) + pl_yield
+                  pcom(j)%plcur(ipl)%harv_num = pcom(j)%plcur(ipl)%harv_num + 1
+                  pcom(j)%plcur(ipl)%harv_num_yr = pcom(j)%plcur(ipl)%harv_num_yr + 1
                   
-                !check minimum biomass for harvest
-                if (biomass > harvop_db(iharvop)%bm_min) then
-                !harvest specific type
+                  !! sum basin crop yields and area harvested
+                  iplt_bsn = pcom(j)%plcur(ipl)%bsn_num
+                  bsn_crop_yld(iplt_bsn)%area_ha = bsn_crop_yld(iplt_bsn)%area_ha + hru(j)%area_ha
+                  bsn_crop_yld(iplt_bsn)%yield = bsn_crop_yld(iplt_bsn)%yield + pl_yield%m * hru(j)%area_ha / 1000.
+                  
+                  !! sum regional crop yields for soft calibration
+                  if (cal_codes%plt == "y") then
+                    ireg = hru(j)%crop_reg
+                    do ilum = 1, plcal(ireg)%lum_num
+                      if (plcal(ireg)%lum(ilum)%meas%name == mgt%op_char) then
+                        plcal(ireg)%lum(ilum)%ha = plcal(ireg)%lum(ilum)%ha + hru(j)%area_ha
+                        plcal(ireg)%lum(ilum)%sim%yield = plcal(ireg)%lum(ilum)%sim%yield + pl_yield%m * hru(j)%area_ha / 1000.
+                      end if
+                    end do
+                  end if
+              
+                  idp = pcom(j)%plcur(ipl)%idplt
+                  if (pco%mgtout == "y") then
+                    write (2612, *) j, time%yrc, time%mo, time%day_mo,  pldb(idp)%plantnm, "    HARV/KILL ",      &
+                        phubase(j), pcom(j)%plcur(ipl)%phuacc, soil(j)%sw, biomass, soil1(j)%rsd(1)%m,           &
+                        sol_sumno3(j), sol_sumsolp(j), pl_yield%m, pcom(j)%plstr(ipl)%sum_n,                      &
+                        pcom(j)%plstr(ipl)%sum_p, pcom(j)%plstr(ipl)%sum_tmp, pcom(j)%plstr(ipl)%sum_w,           &
+                        pcom(j)%plstr(ipl)%sum_a
+                  end if 
+                end if
+                pcom(j)%plstr(ipl) = plstrz
+                pcom(j)%plcur(ipl)%phuacc = 0.
+                phubase(j) = 0.
+              else
                 select case (harvop_db(iharvop)%typ)
-                case ("biomass")    
-                  call mgt_harvbiomass (j, ipl, iharvop)
-                case ("grain")
-                  call mgt_harvgrain (j, ipl, iharvop)
-                case ("residue")
-                  harveff = mgt%op3
-                  call mgt_harvresidue (j, harveff)
-                case ("tree")
-                case ("tuber")
-                  call mgt_harvtuber (j, ipl, iharvop)
-                case ("peanuts")
-                  call mgt_harvtuber (j, ipl, iharvop)
-                case ("stripper")
-                  call mgt_harvgrain (j, ipl, iharvop)
-                case ("picker")
-                  call mgt_harvgrain (j, ipl, iharvop)
+                  case ("residue")
+                    harveff = mgt%op3
+                    call mgt_harvresidue (j, harveff, iharvop)
                 end select
-                end if
-
-                call mgt_killop (j, ipl)
-
-                !! sum yield and num. of harvest to calc ave yields
-                pl_mass(j)%yield_tot(ipl) = pl_mass(j)%yield_tot(ipl) + pl_yield
-                pl_mass(j)%yield_yr(ipl) = pl_mass(j)%yield_yr(ipl) + pl_yield
-                pcom(j)%plcur(ipl)%harv_num = pcom(j)%plcur(ipl)%harv_num + 1
-                pcom(j)%plcur(ipl)%harv_num_yr = pcom(j)%plcur(ipl)%harv_num_yr + 1
-                
-                !! sum basin crop yields and area harvested
-                iplt_bsn = pcom(j)%plcur(ipl)%bsn_num
-                bsn_crop_yld(iplt_bsn)%area_ha = bsn_crop_yld(iplt_bsn)%area_ha + hru(j)%area_ha
-                bsn_crop_yld(iplt_bsn)%yield = bsn_crop_yld(iplt_bsn)%yield + pl_yield%m * hru(j)%area_ha / 1000.
-                
-                !! sum regional crop yields for soft calibration
-                if (cal_codes%plt == "y") then
-                  ireg = hru(j)%crop_reg
-                  do ilum = 1, plcal(ireg)%lum_num
-                    if (plcal(ireg)%lum(ilum)%meas%name == mgt%op_char) then
-                      plcal(ireg)%lum(ilum)%ha = plcal(ireg)%lum(ilum)%ha + hru(j)%area_ha
-                      plcal(ireg)%lum(ilum)%sim%yield = plcal(ireg)%lum(ilum)%sim%yield + pl_yield%m * hru(j)%area_ha / 1000.
-                    end if
-                  end do
-                end if
-            
-                idp = pcom(j)%plcur(ipl)%idplt
-                if (pco%mgtout == "y") then
-                  write (2612, *) j, time%yrc, time%mo, time%day_mo,  pldb(idp)%plantnm, "    HARV/KILL ",      &
-                      phubase(j), pcom(j)%plcur(ipl)%phuacc, soil(j)%sw, biomass, soil1(j)%rsd(1)%m,           &
-                      sol_sumno3(j), sol_sumsolp(j), pl_yield%m, pcom(j)%plstr(ipl)%sum_n,                      &
-                      pcom(j)%plstr(ipl)%sum_p, pcom(j)%plstr(ipl)%sum_tmp, pcom(j)%plstr(ipl)%sum_w,           &
-                      pcom(j)%plstr(ipl)%sum_a
-                end if 
-              end if
-              pcom(j)%plstr(ipl) = plstrz
-              pcom(j)%plcur(ipl)%phuacc = 0.
-              phubase(j) = 0.
+              endif
             end do
+
           case ("till")   !! tillage operation
             idtill = mgt%op1
             ipl = Max(1, mgt%op2)
@@ -459,37 +491,54 @@
             if (wet_ob(j)%evol < wet_ob(j)%pvol*1.1) then
               wet_ob(j)%evol = wet_ob(j)%pvol * 1.1   
             endif
+            
+            !! xwalk weir allocation Jaehak 2025
+            do iwr = 1, db_mx%res_weir
+               if (res_weir(iwr)%name == mgt%op_char) then
+                  wet_ob(j)%iweir = iwr
+                  exit
+               end if
+            end do
+
+            if (pco%mgtout == "y") then
+              write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "RESET WEIR HEIGHT (m)", wet_ob(j)%weir_hgt
+            end if
               
           case ("irrp")  !! continuous irrigation to maintain surface ponding in rice fields Jaehak 2022
             hru(j)%irr_src = mgt%op_plant                   !irrigation source: cha; res; aqu; or unlim                                                 
             hru(j)%irr_isc = mgt%op3                        !irrigation source object ID: cha; res; aqu; or unlim
-            hru(j)%irr_hmax = irrop_db(mgt%op1)%amt_mm     !irrigation amount in irr.org, mm
-            hru(j)%irr_hmin = hru(j)%irr_hmax * 0.9        !threshold ponding depth, mm
             irrig(j)%eff = irrop_db(mgt%op1)%eff
             irrig(j)%frac_surq = irrop_db(mgt%op1)%surq
             irrig(j)%salt = irrop_db(mgt%op1)%salt  !ppm salt  Jaehak 2023
             irrig(j)%no3 = irrop_db(mgt%op1)%no3 !ppm  no3
             pcom(j)%days_irr = 1            ! reset days since last irrigation
-            if (mgt%op3 < 0) then
-              hru(j)%irr_hmax = irrop_db(mgt%op1)%amt_mm     !irrigation amount in irr.org, mm
-              if (hru(j)%irr_hmax>0) hru(j)%paddy_irr = 1 !paddy irrigation is on with manual scheduling
+            if (mgt%op3 < 0) then           ! 
+              hru(j)%irr_hmax = irrop_db(mgt%op1)%amt_mm     !irrigation amount in irr.ops, mm
+              hru(j)%irr_hmin = hru(j)%irr_hmax * 0.9        !threshold ponding depth, mm
+              if (hru(j)%irr_hmax>0) then
+                hru(j)%paddy_irr = 1 !paddy irrigation is on with manual scheduling
+                if (pco%mgtout == "y") then
+                  write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "BEGIN/ADJUST PADDY IRRIGATION",  hru(j)%irr_hmax
+                end if
+              endif
             else
               hru(j)%irr_hmax = mgt%op3       !target ponding depth, mm
+              hru(j)%irr_hmin = hru(j)%irr_hmax * 0.9        !threshold ponding depth, mm
               if (mgt%op3 > 0) then
                 hru(j)%paddy_irr = 1 !paddy irrigation is on with manual scheduling
+                if (pco%mgtout == "y") then
+                  write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "BEGIN/ADJUST PADDY IRRIGATION",  hru(j)%irr_hmax
+                end if
               else
                 hru(j)%paddy_irr = 0!paddy irrigation is off
                 hru(j)%irr_hmin = 0
+                if (pco%mgtout == "y") then
+                  write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "STOP PADDY IRRIGATION",  hru(j)%irr_hmax
+                end if
               endif
             endif
             
           !print irrigation COMMAND
-            if (pco%mgtout == "y") then
-              write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "BEGIN_PADDY_IRRIGATION ", phubase(j),   &
-                  pcom(j)%plcur(ipl)%phuacc, soil(j)%sw,pl_mass(j)%tot(ipl)%m, soil1(j)%rsd(1)%m,      &
-                  sol_sumno3(j), sol_sumsolp(j), mgt%op3, mgt%op4
-            end if
- 
           case ("irpm")  !! date scheduled irrigation operation for rice fields
             ipl = 1
             irrop = mgt%op1                        !irrigation amount (mm) from irr.ops data base
@@ -532,6 +581,9 @@
             else
               call mgt_newtillmix(j,0.,idtill) 
             endif
+            if (pco%mgtout == "y") then
+              write (2612, *) j, time%yrc, time%mo, time%day_mo, mgt%op_char, "PUDDLE"
+            end if
 
           case ("skip")    !! skip a year
             yr_skip(j) = 1

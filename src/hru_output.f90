@@ -14,13 +14,14 @@
       
       implicit none
       
+      external :: soil_nutcarb_write
+      
       integer, intent (in) :: ihru             !            |
       integer :: idp = 0                       !            |
       integer :: j = 0
       integer :: iob = 0
       integer :: ipl = 0
 	  integer :: ilu = 0
-      real :: bm_max_d = 0.
       real :: bm_max_m = 0.
       real :: bm_max_y = 0.
       real :: bm_max_a = 0.
@@ -299,9 +300,11 @@
              hpw_a(j) = hpwz
          end if
          
-         if (time%end_sim == 1 .and. pco%cb_hru%a == "y") then
-          call soil_nutcarb_write(" a")    
-         endif
+          if (time%end_sim == 1) then
+            if (pco%cb_hru%d /= "n" .or. pco%cb_hru%m /= "n" .or. pco%cb_hru%y /= "n" .or. pco%cb_hru%a /= "n") then
+              call soil_nutcarb_write(" e")    
+            endif
+          endif
 
          !! write average annual crop yields
          if (time%end_sim == 1) then

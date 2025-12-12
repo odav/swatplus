@@ -1,15 +1,16 @@
         subroutine cbn_zhang2
     
-        use hru_module, only : ihru, tillage_days, tillage_depth, tillage_factor, tillage_switch, hru
+        use hru_module, only : ihru, tillage_days, tillage_depth, tillage_switch
         use soil_module
         use basin_module
         use organic_mineral_mass_module
         use carbon_module
         use output_landscape_module
-	      use tillage_data_module
-        use time_module, only : time
+        use tillage_data_module
         
         implicit none
+      
+      external :: nut_np_flow, fcgd
         
         !!transput variables;
         !!  std(:)          : standing dead (kg ha-1)                                               (not used)
@@ -111,7 +112,6 @@
        real :: wc = 0.           !none                 |scaling factor for soil water impact on daily
        real :: sat = 0.          !                     |
        real :: void = 0.         !                     |
-       real :: cdg = 0.          !                     |soil temperature control on biological processes
        real :: x3 = 0.           !none                 |amount of c transformed from passive, slow, metabolic, and non-lignin structural pools to microbial pool
        real :: lscta = 0.        !                     |
        real :: lslcta = 0.       !                     |
@@ -122,7 +122,6 @@
        real :: a1 = 0.           !                     |
        real :: asx = 0.          !                     |
        real :: apx = 0.          !                     |
-       real :: a1co2 = 0.        !                     |
        real :: df1 = 0.          !                     |
        real :: df2 = 0.          !                     |
        real :: snmn = 0.         !
@@ -152,12 +151,11 @@
        real :: cpn4 = 0.         !                     |
        real :: cpn5 = 0.         !                     |
        real :: wmin = 0.         !                     |
-       real :: dmdn = 0.         !                     |
+       real :: trnn = 0.         !                     |
        real :: wdn = 0.          !kg N/ha              |amount of nitrogen lost from nitrate pool in
        real :: deltawn = 0.      !                     |
        real :: deltabmc = 0.     !                     |
        real :: snta = 0.         !                     |
-       real :: till_eff = 0.     !                     |
        real :: rlr = 0.          !                     |
        real :: xbm = 0.          !                     |
        real :: bmcta = 0.        !                     |
@@ -248,7 +246,7 @@
        cpn4 = 0.
        cpn5 = 0.
        wmin = 0.
-       dmdn = 0.
+       trnn = 0.
        !bmix_depth = 50    
        soil_lyr_thickness = 0
 
@@ -569,13 +567,13 @@
               wmin = max(1.e-5,soil1(j)%mn(k)%no3 + soil1(j)%mn(k)%nh4 + sum)
               
               !total demand for potential tranformaiton of som
-              dmdn = cpn1 +cpn2 + cpn3 + cpn4 + cpn5
+              trnn = cpn1 +cpn2 + cpn3 + cpn4 + cpn5
               
               reduc = 1.
         !     reduce demand if supply limits
         
-              if (wmin < dmdn) then
-                  reduc = wmin / dmdn
+              if (wmin < trnn) then
+                  reduc = wmin / trnn
               end if
               
         !     actual transformations
@@ -677,10 +675,10 @@
                   wmin = max(1.e-5, soil1(j)%mn(k)%no3 + soil1(j)%mn(k)%nh4 + sum)
                   
                   !total demand for potential tranformaiton of som
-                  dmdn = cpn1 + cpn2 + cpn3 + cpn4 + cpn5              
+                  trnn = cpn1 + cpn2 + cpn3 + cpn4 + cpn5              
 
               !supply - demand
-              rnmn = sum - dmdn
+              rnmn = sum - trnn
               
         !     update
               if (rnmn > 0.) then
@@ -983,4 +981,3 @@
 
     return
     end subroutine cbn_zhang2
-    

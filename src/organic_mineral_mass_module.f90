@@ -1,9 +1,13 @@
       module organic_mineral_mass_module
     
-      use carbon_module, only: organic_flux, organic_controls, organic_allocations, organic_transformations
+      !use carbon_module, only: organic_flux, organic_controls, organic_allocations, organic_transformations
       use carbon_module
       implicit none 
 
+      real :: meta_frac = 0.85  !none       |fraction of that is metabolic
+      real :: str_frac = 0.15   !none       |fraction of that is structural
+      real :: lig_frac = 0.12   !none       |fraction of that is lignin
+      
       type organic_mass
         real :: m = 0.              !kg/ha      |total object mass
         real :: c = 0.              !kg/ha      |carbon mass

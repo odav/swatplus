@@ -50,16 +50,21 @@
         real :: up = 0.             !! mm H2O/mm    ! soil water content of soil at -0.033 MPa (field capacity)
         real :: wp = 0.             !! mm H20/mm    ! soil water content of soil at -1.5 MPa (wilting point)
         real :: wpmm = 0.           !! mm H20       ! water content of soil at -1.5 MPa (wilting point)
+        real :: tot_sw = 0.         !! mm H20       ! total soil water content in mm/mm by layer that includes wilting point water content   
       end type soil_physical_properties
       type (soil_physical_properties),dimension (:), allocatable:: phys1
 
-      type soil_carbon_test
+      type soil_test
         character(len=16) :: snam = ""     !! NA            soil series name  
-        real :: d = 0.              !! mm           ! depth in mm of soil carbon test
-        real :: cbn = 0.            !! mm/hr        ! percent organic carbon from soil test
-      end type soil_carbon_test
-      type (soil_carbon_test), dimension(:), allocatable :: sol_cbn_test
-      integer :: nmbr_cbn_tests = 0 !! none         |number of soil carbon tests 
+        real :: d = 0.                !! mm           ! depth in mm of soil carbon test
+        real :: bd = 0.               !! Mg/m^3       | bulk density soil test
+        real :: cbn = 0.              !! %            ! percent organic carbon from soil test
+        real :: sand = 0.             !! %            | percent sand
+        real :: silt = 0.             !! %            | percent silt
+        real :: clay = 0.             !! %            | percent clay
+      end type soil_test
+      type (soil_test), dimension(:), allocatable :: sol_test
+      integer :: nmbr_soil_tests = 0 !! none         |number of soil carbon tests 
 
       type soil_profile
         character(len=16) :: snam = ""     !! NA            soil series name  

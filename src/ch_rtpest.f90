@@ -3,7 +3,7 @@
 !!     ~ ~ ~ PURPOSE ~ ~ ~
 !!     this subroutine computes the daily stream pesticide balance
 !!     (soluble and sorbed)     
-      
+
       use channel_data_module
       use channel_module
       use sd_channel_module
@@ -14,6 +14,10 @@
 
       implicit none
       
+
+      
+
+      external :: theta
       integer :: ipest = 0      !none                   |pesticide counter - sequential
       integer :: jpst = 0       !none                   |pesticide counter from data base
       integer :: ipseq = 0      !none                   |sequential basin pesticide number
@@ -38,10 +42,10 @@
       chpst_d(jrch) = chpstz
       
       !! initialize depth of water for pesticide calculations
-      if (rchdep < 0.01) then
+
+      depth = rcurv%dep
+      if (depth < 0.01) then
         depth = .01
-      else
-        depth = rchdep
       endif
 
       do ipest = 1, cs_db%num_pests

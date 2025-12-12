@@ -32,7 +32,7 @@
       use septic_data_module
       use basin_module
       use organic_mineral_mass_module
-      use hru_module, only : rsdco_plcom, i_sep, ihru, isep 
+      use hru_module, only : rsdco_plcom, ihru
       use soil_module
       use plant_module
       use output_landscape_module, only : hnb_d
@@ -50,21 +50,12 @@
       real :: rmp = 0.      !              |to labile(80%) and organic(20%) pools in layer
       real :: xx = 0.       !varies        |variable to hold intermediate calculation result
       real :: csf = 0.      !none          |combined temperature/soil water factor
-      real :: rwn = 0.      !kg N/ha       |amount of nitrogen moving from active organic
-                            !              |to stable organic pool in layer
-      real :: hmn = 0.      !kg N/ha       |amount of nitrogen moving from active organic
-                            !              |nitrogen pool to nitrate pool in layer
-      real :: hmp = 0.      !kg P/ha       |amount of phosphorus moving from the organic
-                            !              |pool to the labile pool in layer
       real :: cnr = 0.      !              |carbon nitrogen ratio
       real :: cnrf = 0.     !              |carbon nitrogen ratio factor 
       real :: cpr = 0.      !              |carbon phosphorus ratio
       real :: cprf = 0.     !              |carbon phosphorus ratio factor
       real :: ca = 0.       !              |
       real :: decr = 0.     !              |
-      !real :: rdc = 0.      !              |
-      real :: wdn = 0.      !kg N/ha       |amount of nitrogen lost from nitrate pool in
-                            !              |layer due to denitrification
       real :: cdg = 0.      !none          |soil temperature factor
       real :: sut = 0.      !none          |soil water factor
       real :: nactfr = 0.   !none          |nitrogen active pool fraction. The fraction
@@ -135,12 +126,18 @@
           decomp = decr * soil1(j)%rsd(k)
           soil1(j)%rsd(k) = soil1(j)%rsd(k) - decomp
 
-          soil1(j)%meta(k) = soil1(j)%meta(k) + 0.85 * decomp
-          soil1(j)%str(k) = soil1(j)%str(k) + 0.15 * decomp
-          soil1(j)%lig(k) = soil1(j)%lig(k) + 0.12 * decomp
+          ! The following if statements are to prevent runtime underflow errors with gfortran 
+          if (soil1(j)%rsd(k)%m < 1.e-10) soil1(j)%rsd(k)%m = 0.0 
+          if (soil1(j)%rsd(k)%c < 1.e-10) soil1(j)%rsd(k)%c = 0.0 
+          if (soil1(j)%rsd(k)%n < 1.e-10) soil1(j)%rsd(k)%n = 0.0 
+          if (soil1(j)%rsd(k)%p < 1.e-10) soil1(j)%rsd(k)%p = 0.0 
+
+          soil1(j)%meta(k) = soil1(j)%meta(k) + meta_frac * decomp
+          soil1(j)%str(k) = soil1(j)%str(k) + str_frac * decomp
+          soil1(j)%lig(k) = soil1(j)%lig(k) + lig_frac * decomp
 
         end if
       end do        ! k = 1, soil(j)%nly
 
       return
-      end subroutine
+      end subroutine cbn_rsd_decomp

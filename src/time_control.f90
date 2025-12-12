@@ -46,9 +46,7 @@
       use basin_module
       use sd_channel_module
       use hru_lte_module
-      use basin_module
-      use hydrograph_module  !, only : sp_ob, sp_ob1, ob, chaz, ch_stor_y, ch_in_y, ch_out_y,   &
-                             !                                 res_trap, res_out_a, res_in_a 
+      use hydrograph_module
       use output_landscape_module
       use conditional_module
       use constituent_mass_module
@@ -58,6 +56,10 @@
       !use reservoir_data_module
       
       implicit none
+      
+      external :: actions, aqu_pest_output_init, basin_sw_init, calsoft_ave_output, calsoft_sum_output, &
+                  cli_atmodep_time_control, cli_precip_control, climate_control, command, conditions, &
+                  mallo_control, xmon, sim_initday, wallo_control, mgt_newtillmix
 
       integer :: j = 0               !none          |counter
       integer :: julian_day = 0      !none          |counter
@@ -73,8 +75,8 @@
       real :: crop_yld_t_ha = 0.     !t/ha          |annual and ave annual basin crop yields
       real :: sw_init = 0.
       real :: sno_init = 0.
-      real :: bank_mm, bed_mm
       integer :: iob = 0             !              |
+      integer :: iord
       integer :: curyr = 0           !              |
       integer :: mo = 0              !              |
       integer :: day_mo = 0          !              |
@@ -147,7 +149,7 @@
         !! set initial soil water for hru, basin and lsu - for checking water balance
         if (pco%sw_init == "n") then
           if (time%yrs > pco%nyskip) then
-            call basin_sw_init
+            call basin_sw_init     !***jga 
             call aqu_pest_output_init
             pco%sw_init = "y"  !! won't reset again
           end if
@@ -255,9 +257,6 @@
             do ihru = 1, sp_ob%hru
               iob = sp_ob1%hru + ihru - 1
               if (ob(iob)%lat < 0) then
-                !! zero yearly irrigation for dtbl conditioning jga6-25
-                hru(ihru)%irr_yr = 0.
-            
                 phubase(ihru) = 0.
                 yr_skip(ihru) = 0
                 isched = hru(ihru)%mgt_ops
@@ -281,8 +280,10 @@
         if (sp_ob%hru > 0) then
         do iplt = 1, basin_plants
           crop_yld_t_ha = bsn_crop_yld(iplt)%yield / (bsn_crop_yld(iplt)%area_ha + 1.e-6)
-          write (5100,*) time%yrc, iplt, plts_bsn(iplt), bsn_crop_yld(iplt)%area_ha,            &
+          if (pco%crop_yld == "y" .or. pco%crop_yld == "b") then
+            write (5100,*) time%yrc, iplt, plts_bsn(iplt), bsn_crop_yld(iplt)%area_ha,            &
                                                 bsn_crop_yld(iplt)%yield, crop_yld_t_ha
+          end if
           bsn_crop_yld_aa(iplt)%area_ha = bsn_crop_yld_aa(iplt)%area_ha + bsn_crop_yld(iplt)%area_ha
           bsn_crop_yld_aa(iplt)%yield = bsn_crop_yld_aa(iplt)%yield + bsn_crop_yld(iplt)%yield
           bsn_crop_yld(iplt) = bsn_crop_yld_z
@@ -290,8 +291,10 @@
             crop_yld_t_ha = bsn_crop_yld_aa(iplt)%yield / (bsn_crop_yld_aa(iplt)%area_ha + 1.e-6)
             bsn_crop_yld_aa(iplt)%area_ha = bsn_crop_yld_aa(iplt)%area_ha / time%yrs_prt
             bsn_crop_yld_aa(iplt)%yield = bsn_crop_yld_aa(iplt)%yield / time%yrs_prt
-            write (5101,*) time%yrc, iplt, plts_bsn(iplt), bsn_crop_yld_aa(iplt)%area_ha,   &
+            if (pco%crop_yld == "y" .or. pco%crop_yld == "b") then
+              write (5101,*) time%yrc, iplt, plts_bsn(iplt), bsn_crop_yld_aa(iplt)%area_ha,   &
                                                 bsn_crop_yld_aa(iplt)%yield, crop_yld_t_ha
+            end if
             bsn_crop_yld_aa(iplt) = bsn_crop_yld_z
           end if
         end do
@@ -353,7 +356,7 @@
           iob = sp_ob1%hru + j - 1
           if (ob(iob)%lat >= 0) then
             ! zero yearly irrigation for dtbl conditioning jga6-25
-            hru(ihru)%irr_yr = 0.
+            !hru(j)%irr_yr = 0.
             
             phubase(j) = 0.
             yr_skip(j) = 0
@@ -371,26 +374,74 @@
         time%yrc = time%yrc + 1
       end do            !!     end annual loop
       
+      !! write channel morphology - downcutting and widening
+      bsn_sedbud%upland_t = bls_a%sedyld * bsn%area_ls_ha
+      
       do ich = 1, sp_ob%chandeg
-        !! write channel morphology - downcutting and widening
-        bank_mm = ch_morph(ich)%w_yr 
-        bed_mm = ch_morph(ich)%d_yr
-        ch_morph(ich)%w_yr = ch_morph(ich)%w_yr / sd_ch(ich)%chw / time%yrs_prt
-        ch_morph(ich)%d_yr = ch_morph(ich)%d_yr / sd_ch(ich)%chd / time%yrs_prt
-        !! mm = t / (3.*bd*w*l) -> assume fp width = 3*chw; len(m)=1000.*km; bd=t/m3; mm=1000.*m
-        ch_morph(ich)%fp_mm = ch_morph(ich)%fp_mm / (3. * sd_ch(ich)%chw *           &
+        iord = sd_ch(ich)%order
+        !! sum tons by stream order - w_yr, d_yr and fp_mm are still in tons
+        ch_morph_ord(iord)%num = ch_morph_ord(iord)%num + 1
+        
+        !! compute w_yr, d_yr and fp dep in mm
+        ch_morph(ich)%w_yr = ch_morph(ich)%ebank_m / sd_ch(ich)%chw / time%yrs_prt
+        ch_morph(ich)%d_yr = ch_morph(ich)%ebtm_m / sd_ch(ich)%chd / time%yrs_prt
+        !! mm = t / (3.*bd*w*l) -> assume fp width = 3*chw; len(m)=1000.*km; bd=1.0 t/m3; mm=1000.*m
+        ch_morph(ich)%fp_mm = ch_morph(ich)%fp_t / (3. * sd_ch(ich)%chw *           &
                                                 sd_ch(ich)%chl) / time%yrs_prt
+        
+        !! basin flood plain deposition and bank erosion
+        bsn_sedbud%fp_dep_t = bsn_sedbud%fp_dep_t + ch_morph(ich)%fp_t
+        bsn_sedbud%ch_ebank_t = bsn_sedbud%ch_ebank_t + ch_morph(ich)%ebank_t
+        ch_morph_ord(iord)%fp_t = ch_morph_ord(iord)%fp_t + ch_morph(ich)%fp_t
+        
+        !! sum to compute average per year
+        ch_morph_ord(iord)%ebank_t = ch_morph_ord(iord)%ebank_t + ch_morph(ich)%ebank_t
+        ch_morph_ord(iord)%w_yr = ch_morph_ord(iord)%w_yr + ch_morph(ich)%w_yr
+        ch_morph_ord(iord)%d_yr = ch_morph_ord(iord)%d_yr + ch_morph(ich)%d_yr
+        ch_morph_ord(iord)%fp_mm = ch_morph_ord(iord)%fp_mm + ch_morph(ich)%fp_mm
+        bsn_sedbud%ch_w_yr = bsn_sedbud%ch_w_yr + ch_morph(ich)%w_yr
+        
         iob = sp_ob1%chandeg + ich - 1
-        write (7778,*) ich, ob(iob)%name, ob(iob)%area_ha, sd_ch(ich)%chw, bank_mm,  &
-                ch_morph(ich)%w_yr, sd_ch(ich)%chd, bed_mm, ch_morph(ich)%d_yr,      &
-                                                            ch_morph(ich)%fp_mm
+        !! ch_budget.txt
+        write (8000,*) ich, ob(iob)%name, ob(iob)%area_ha, sd_ch(ich)%chw,  &
+                ch_morph(ich)%w_yr, sd_ch(ich)%chd, ch_morph(ich)%d_yr,      &
+                                                      ch_morph(ich)%fp_mm
       end do
       
-      do ich = 1, sp_ob%res
+      !! average and write by stream order
+      if (sp_ob%chandeg > 0) then
+        do iord = 1, 12
+          if (ch_morph_ord(iord)%num > 0) then
+            ch_morph_ord(iord)%w_yr = ch_morph_ord(iord)%w_yr / ch_morph_ord(iord)%num
+            ch_morph_ord(iord)%d_yr = ch_morph_ord(iord)%d_yr / ch_morph_ord(iord)%num
+            ch_morph_ord(iord)%fp_mm = ch_morph_ord(iord)%fp_mm / ch_morph_ord(iord)%num
+          end if
+        end do
+      end if
+      
+      !! write ch_order_sed.txt
+      if (sp_ob%chandeg > 0) then
+        do iord = 1, 12
+          write (8001,*) iord, ch_morph_ord(iord)%num, ch_morph_ord(iord)%ebank_t,     &
+            ch_morph_ord(iord)%w_yr, ch_morph_ord(iord)%fp_t, ch_morph_ord(iord)%fp_mm
+        end do
+      end if
+      
+      !! upland/channel sediment ratio
+      if (bsn_sedbud%ch_ebank_t > 0.) then
+        bsn_sedbud%up_ch_rto = bsn_sedbud%upland_t / bsn_sedbud%ch_ebank_t
+        bsn_sedbud%ch_w_yr = bsn_sedbud%ch_w_yr / sp_ob%chandeg
+      end if
+      
+      do ires= 1, sp_ob%res
         !! write reservoir trap efficiencies
-        !res_trap(ires) = res_out_a(ires) / res_in_a(ires)
-        !iob = sp_ob1%res + ires - 1
-        !write (7778,*) ires, ob(iob)%name, ob(iob)%area_ha, res_trap(ires)
+        if (res_in_a(ires)%sed > 1.e-6) then
+          res_trap(ires)%sed =  res_out_a(ires)%sed /  res_in_a(ires)%sed
+          bsn_sedbud%res_dep_t = bsn_sedbud%res_dep_t + res_in_a(ires)%sed - res_out_a(ires)%sed
+          bsn_sedbud%res_trap_eff = bsn_sedbud%res_trap_eff + res_trap(ires)%sed
+          !iob = sp_ob1%res + ires - 1
+          !write (7778,*) ires, ob(iob)%name, ob(iob)%area_ha, res_trap(ires)
+        end if
       end do
           
       !! ave annual calibration output and reset time for next simulation

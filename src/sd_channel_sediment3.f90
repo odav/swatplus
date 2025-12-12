@@ -1,5 +1,5 @@
-            subroutine sd_channel_sediment3
-
+      subroutine sd_channel_sediment3
+        
       use climate_module
       use sd_channel_module
       use channel_module
@@ -8,8 +8,11 @@
       use hru_module, only : hru
       use water_body_module
       use reservoir_module
+      use utils
 
       implicit none     
+      
+      external :: rcurv_interp_flo
 
       integer :: iob = 0            !               |object number
       integer :: ihru = 0
@@ -20,18 +23,13 @@
       real :: trap_eff = 0.         !frac           |trap efficiency in the flood plain
       real :: cohesion = 0.         !               |soil bank cohesion 
       real :: b_exp = 0.            !               |exponent for bank erosion equation
-      real :: vel_fall = 0.         !m/s            |fall velocity of sediment particles in channel
-      real :: dep_fall = 0.         !m              |fall depth of sediment particles in channel
-      real :: del_rto = 0.          !frac           |fraction of sediment deposited in channel
       real :: ebtm_m = 0.           !m              |erosion of bottom of channel
       real :: ebank_m = 0.          !m              |meander cut on one side
       real :: ebtm_t = 0.           !tons           |bottom erosion
       real :: ebank_t = 0.          !tons           |bank erosion
       real :: shear_btm_cr = 0.     !               |
       real :: shear_btm = 0.        !               |  
-      real :: inflo = 0.                 !m^3            |inflow water volume
-      real :: inflo_rate = 0.            !m^3/s          |inflow rate
-      real :: flo_time = 0.              !s              |estimate of total flow time through the channel
+      real :: flo_time = 0.         !s              |estimate of total flow time through the channel
       real :: bf_flow = 0.          !m3/s           |bankfull flow rate * adjustment factor
       real :: pk_rto = 0.           !ratio          |peak to mean flow rate ratio
       real :: bd_fac = 0.           !               |bulk density factor for critical velocity calculation
@@ -53,7 +51,9 @@
       real :: flovol_ob = 0.
       real :: wet_fill = 0.
       real :: ave_rate
-      !!
+      real :: v_vc = 0.
+      real :: m_exhaust = 0.
+      real :: dur_scale = 0.
 
       ich = isdch
       iob = sp_ob1%chandeg + jrch - 1
@@ -113,7 +113,7 @@
         !trap_eff = 0.05 * log(sd_ch(ich)%fp_inun_days) + 0.1
         !! trap efficiency from Dynamic SedNet Component Model Reference Guide: Update 2017
         fp_m2 = 3. * sd_ch(ich)%chw * sd_ch(ich)%chl * 1000.
-        exp_co = 0.0003 * fp_m2 / florate_ob
+        exp_co = 0.0001 * fp_m2 / florate_ob
         trap_eff = sd_ch(ich)%fp_inun_days * (florate_ob / ave_rate) * (1. - exp(-exp_co))
         trap_eff = Min (1., trap_eff)
         fp_dep%sed = trap_eff * ht1%sed
@@ -178,8 +178,14 @@
       b_exp = min (3.5, b_exp)
       if (vel_rch > vel_cr) then
         !! bank erosion m/yr
-        ebank_m = 0.00024 * (vel_rch / vel_cr) ** sd_ch(ich)%bank_exp
 
+        dur_scale = 0.0001 * (ob(icmd)%area_ha / 100.) ** (-0.0858)
+        v_vc = dur_scale * sd_ch(ich)%chw * (1. / (1. + exp_w(-4. * (vel_rch / vel_cr - 1.))))
+        m_exhaust = 0.0002 * sd_ch(ich)%chw
+        ebank_m = 1. / (1. / v_vc + 1. / m_exhaust)
+        !ebank_m = 0.0001 * sd_ch(ich)%chw * (1. / (1. + exp(-4. * (vel_rch / vel_cr - 1.))) - 0.5)
+        !ebank_m = 0.001 / (1. + exp(-4. * (vel_rch / vel_cr) / sd_ch(ich)%chw))
+        !ebank_m = 0.00024 * (vel_rch / vel_cr) ** sd_ch(ich)%bank_exp
       else
         ebank_m = 0.
       end if

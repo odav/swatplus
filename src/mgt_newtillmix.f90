@@ -32,19 +32,19 @@
       use soil_module
       use constituent_mass_module
       use plant_module
-	    use tillage_data_module
-      use time_module, only : time
+      use tillage_data_module
       
       implicit none
+      
+      external :: mgt_tillfactor
 
       integer, intent (in) :: jj       !none           |HRU number
       integer, intent (in) :: idtill   !none           |tillage type
       real, intent (in) :: bmix        !               | 
       integer :: l = 0                 !none           |counter
-      integer :: k = 0                 !none           |counter
       integer :: kk = 0                !               |
       integer :: npmx = 0              !               |
-      integer :: prev_depth = 0
+      real :: prev_depth = 0.
       real :: emix = 0.                !none           |mixing efficiency
       real :: dtil = 0.                !mm             |depth of mixing
       real :: frac_mixed = 0.          !               |
@@ -111,7 +111,7 @@
 
         ! if Test soil layers down to dtil are above freezing
         if (bsn_cc%cswat == 2) then                                       
-          prev_depth = 0
+          prev_depth = 0.
           do l = 1, soil(jj)%nly
             if ( prev_depth < dtil) then
               if (soil(jj)%phys(l)%tmp > 0.) then
@@ -138,7 +138,7 @@
       !!=======================
       if (bsn_cc%cswat == 2) then
         if (bio_mix_event .eqv. .true.) then
-          if (tillage_switch(jj) .eq. 1 .and. tillage_days(jj) .le. 30) then
+          if (tillage_switch(jj) .eq. 1 .and. tillage_days(jj) .le. till_eff_days) then
             if (bio_mix_event) then
               dtil = 0.
               bio_mix_event = .false.
@@ -192,7 +192,8 @@
             
             mix_sw = mix_sw + frac_mixed * soil(jj)%phys(l)%st
             mix_bd = mix_bd + frac_mixed * soil(jj)%phys(l)%bd
-            mix_rock = mix_rock + frac_mixed * soil(jj)%phys(l)%rock
+
+            if (.not. bio_mix_event) mix_rock = mix_rock + frac_mixed * soil(jj)%phys(l)%rock * sol_mass(l) / 100.
             mix_sand = mix_sand + frac_mixed * soil(jj)%phys(l)%sand * sol_mass(l) / 100.
             mix_silt = mix_silt + frac_mixed * soil(jj)%phys(l)%silt * sol_mass(l) / 100.
             mix_clay = mix_clay + frac_mixed * soil(jj)%phys(l)%clay * sol_mass(l) / 100.
@@ -240,8 +241,8 @@
                                                                                             + frac_dep(l) * mix_silt)
             soil(jj)%phys(l)%sand = 100. / sol_mass(l) * (frac_non_mixed * soil(jj)%phys(l)%sand * sol_mass(l) / 100. &
                                                                                             + frac_dep(l) * mix_sand)
-            soil(jj)%phys(l)%rock = 100. / sol_mass(l) * (frac_non_mixed * soil(jj)%phys(l)%rock * sol_mass(l) / 100. &
-                                                                                            + frac_dep(l) * mix_rock)
+            if (.not. bio_mix_event) soil(jj)%phys(l)%rock = 100. / sol_mass(l) * (frac_non_mixed * soil(jj)%phys(l)%rock * sol_mass(l) / 100. &
+                                                                                           + frac_dep(l) * mix_rock)
             soil(jj)%phys(l)%st = frac_non_mixed * soil(jj)%phys(l)%st + frac_dep(l) * mix_sw
             !soil(jj)%phys(l)%bd = frac_non_mixed * soil(jj)%phys(l)%bd + frac_dep(l) * mix_bd
 

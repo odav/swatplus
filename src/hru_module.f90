@@ -142,23 +142,6 @@
         integer :: cs = 1 !rtb cs
       end type soil_plant_initialize
       type (soil_plant_initialize), dimension (:), allocatable :: sol_plt_ini
-      
-      !rtb salt/cs
-      type soil_plant_initialize_cs
-        character(len=16) :: name = ""
-        character(len=16) :: pestc = ""
-        character(len=16) :: pathc = ""
-        character(len=16) :: saltc = ""
-        character(len=16) :: hmetc = ""
-        character(len=16) :: csc = "" !rtb cs
-        integer :: pest = 1
-        integer :: path = 1
-        integer :: salt = 1
-        integer :: hmet = 1
-        integer :: cs = 1
-      end type soil_plant_initialize_cs
-      type (soil_plant_initialize_cs), dimension (:), allocatable :: sol_plt_ini_cs
-      
         
       type hru_databases
         character(len=40) :: name = ""
@@ -266,10 +249,10 @@
         real :: snocov2 = 0.
         integer :: cur_op = 1
         integer :: irr = 0                      !none       |set to 1 if irrigated during simulation - for wb soft cal
-        integer :: irr_dmd_dtbl = 0
-        integer :: man_dmd_dtbl = 0
-        integer :: irr_dmd_iauto = 0
-        integer :: man_dmd_iauto = 0
+        integer :: irr_trn_dtbl = 0
+        integer :: man_trn_dtbl = 0
+        integer :: irr_trn_iauto = 0
+        integer :: man_trn_iauto = 0
         integer :: wet_db = 0                   !none       |pointer to wetland data - saved so turn on/off
         real :: wet_hc = 0.                     !mm/h       |hydraulic conductivity of upper layer - wetlands
         real :: sno_mm = 0.                     !mm H2O     |amount of water in snow on current day

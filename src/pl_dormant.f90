@@ -16,10 +16,8 @@
       integer :: idp = 0            !              |
       integer :: iob = 0            !              |
       integer :: iwgn = 0           !              |
-      integer :: ly = 0             !              |soil layer number
       real :: rto = 0.              !              |
       real :: lai_init = 0.         !
-      real :: lai_drop = 0.
 
       j = ihru
       idp = pcom(j)%plcur(ipl)%idplt
@@ -60,11 +58,12 @@
           pl_mass(j)%seed(ipl) = plt_mass_z
           
           soil1(j)%rsd(1) = soil1(j)%rsd(1) + abgr_drop
-          if (bsn_cc%cswat == 2) then
-            soil1(j)%meta(ly) = soil1(j)%meta(ly) + 0.85 * abgr_drop
-            soil1(j)%str(ly) = soil1(j)%str(ly) + 0.15 * abgr_drop
-            soil1(j)%lig(ly) = soil1(j)%lig(ly) + 0.12 * abgr_drop  ! 0.12 = 0.8 * 0.15 -> lig = 80%str
-          end if
+          !! This allocation if cswat == 2 is done in cbn_rsd_decomp subroutine
+          ! if (bsn_cc%cswat == 2) then
+          !   soil1(j)%meta(ly) = soil1(j)%meta(ly) + 0.85 * abgr_drop
+          !   soil1(j)%str(ly) = soil1(j)%str(ly) + 0.15 * abgr_drop
+          !   soil1(j)%lig(ly) = soil1(j)%lig(ly) + 0.12 * abgr_drop  ! 0.12 = 0.8 * 0.15 -> lig = 80%str
+          ! end if
           
           pcom(j)%plcur(ipl)%idorm = "y"
           pcom(j)%plcur(ipl)%phuacc = 0.

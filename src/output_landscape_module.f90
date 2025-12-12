@@ -1152,6 +1152,7 @@
          character(len=15)  :: lig_c         =    "       lignin_c"      
          character(len=15)  :: water_c       =    "        water_c"
          character(len=15)  :: manure_c      =    "       manure_c"  
+         character(len=15)  :: soil_water    =    "     soil_water"  
          end type output_cpool_header       
       type (output_cpool_header) :: cpool_hdr
       
@@ -1175,6 +1176,7 @@
          character(len=15)  :: lig_c        =  "          kg/ha"      
          character(len=15)  :: water_c      =  "          kg/ha"
          character(len=15)  :: manure_c     =  "          kg/ha"  
+         character(len=15)  :: soil_water   =  "          mm/mm"  
         end type output_cpool_header_units         
       type (output_cpool_header_units) :: cpool_units
 
@@ -2099,8 +2101,16 @@
         hru2%act_nit_n = hru1%act_nit_n * const
         hru2%act_sta_n = hru1%act_sta_n * const
         hru2%org_lab_p = hru1%org_lab_p * const
-        hru2%rsd_nitorg_n = hru1%rsd_nitorg_n * const
-        hru2%rsd_laborg_p = hru1%rsd_laborg_p * const
+        if (hru1%rsd_nitorg_n < 1.e-10) then
+          hru2%rsd_nitorg_n = 0.0 ! FG - to prevent gfortran underflow error
+        else
+          hru2%rsd_nitorg_n = hru1%rsd_nitorg_n * const
+        endif
+        if (hru1%rsd_laborg_p < 1.e-10) then
+          hru2%rsd_laborg_p = 0.0 ! FG - to prevent gfortran underflow error
+        else
+          hru2%rsd_laborg_p = hru1%rsd_laborg_p * const
+        endif
         hru2%no3atmo = hru1%no3atmo * const
         hru2%nh4atmo = hru1%nh4atmo * const
         hru2%nuptake = hru1%nuptake * const
