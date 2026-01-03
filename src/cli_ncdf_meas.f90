@@ -1,3 +1,4 @@
+#ifdef USE_NETCDF
 subroutine cli_ncdf_meas
     
     ! This subroutine reads NetCDF climate data for SWAT+ simulation
@@ -727,3 +728,19 @@ contains
     end function is_leap_year
 
 end subroutine cli_ncdf_meas
+
+#else
+
+! Stub subroutine when NetCDF support is disabled
+subroutine cli_ncdf_meas
+    implicit none
+    
+    write(*,*) "! Error: NetCDF support is not enabled in this build."
+    write(*,*) "       Please rebuild SWAT+ with -DENABLE_NETCDF=ON to use NetCDF climate inputs."
+    write(*,*) "       Or use traditional climate input files instead of 'netcdf.ncw'."
+    write(9003,*) "! Error: NetCDF support is not enabled in this build."
+    stop "NetCDF support disabled"
+    
+end subroutine cli_ncdf_meas
+
+#endif

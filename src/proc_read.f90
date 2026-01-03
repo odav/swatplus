@@ -18,6 +18,9 @@
                   hru_lte_read, lsu_read_elements, manure_allocation_read, om_treat_read, om_use_read, &
                   path_cha_res_read, pest_cha_res_read, salt_cha_read, water_allocation_read, &
                   water_pipe_read, water_tower_read, water_treatment_read, water_use_read, cs_uptake
+#ifdef USE_NETCDF
+      external :: cli_ncdf_meas
+#endif
              
       call ch_read_temp
       call cli_read_atmodep
@@ -53,9 +56,17 @@
             call cli_staread    ! Traditional: reads file names, uses search() to map to indices
       111   format (1x,a, 25x,"Time",2x,i2,":",i2,":",i2)
       else
+#ifdef USE_NETCDF
           ! NetCDF path: read stations first, then climate data to set up arrays properly
           call cli_staread    ! NetCDF: reads scale factors, sets up wco_c%*gage names
           call cli_ncdf_meas  ! NetCDF: reads NetCDF data, populates climate arrays
+#else
+          write(*,*) "! Error: NetCDF support is not enabled in this build."
+          write(*,*) "       To use 'netcdf.ncw', rebuild SWAT+ with -DENABLE_NETCDF=ON"
+          write(*,*) "       Or use traditional climate files (weather.wst) instead."
+          write(9003,*) "! Error: NetCDF support is not enabled in this build."
+          stop "NetCDF support disabled"
+#endif
       end if
 
 
