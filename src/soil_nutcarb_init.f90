@@ -26,6 +26,7 @@
       real :: solp = 0.
       real :: ssp = 0.
       real :: psp = 0.                  !              | 
+      real :: tot_mass                  !kg/ha      |total mass of the soil layer
 
       nly = soil(ihru)%nly
 
@@ -125,8 +126,12 @@
 
         !initialize total soil organic pool - no litter
         !kg/ha = mm * t/m3 * m/1,000 mm * 1,000 kg/t * 10,000 m2/ha
-        soil1(ihru)%tot(ly)%m = 10000. * soil(ihru)%phys(ly)%thick * soil(ihru)%phys(ly)%bd
-        soil1(ihru)%tot(ly)%c = soil1(ihru)%tot(ly)%m * soil1(ihru)%cbn(ly) / 100.
+        
+        tot_mass = 10000. * soil(ihru)%phys(ly)%thick * soil(ihru)%phys(ly)%bd
+        !! total mass of soil organic matter - cbn in %, and assume SOM is 58% carbon
+        soil1(ihru)%tot(ly)%m = tot_mass * (soil1(ihru)%cbn(ly) / 100.) / 0.58
+        soil1(ihru)%tot(ly)%c = tot_mass * (soil1(ihru)%cbn(ly) / 100.)
+
         soil1(ihru)%tot(ly)%n = soil1(ihru)%tot(ly)%c / 10.     !assume 10:1 C:N ratio
         soil1(ihru)%tot(ly)%p = soil1(ihru)%tot(ly)%c / 100.    !assume 100:1 C:P ratio
            
