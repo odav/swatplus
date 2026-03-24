@@ -79,7 +79,7 @@ subroutine soils_test_adjust(isol, mlyr)
                     soil_lyr_thickness = sol(isol)%phys(i)%d - prev_depth 
                     ltxbd = soil_lyr_thickness * sol(isol)%phys(i)%bd
                     ltxbd_sum = ltxbd_sum + ltxbd
-                    sum_cbn = sum_sand + ltxbd * sol(isol)%phys(i)%sand
+                    sum_cbn = sum_cbn + ltxbd * sol(isol)%phys(i)%cbn
                     sum_sand = sum_sand + ltxbd * sol(isol)%phys(i)%sand
                     sum_clay = sum_clay + ltxbd * sol(isol)%phys(i)%clay
                     prev_depth = sol(isol)%phys(i)%d
