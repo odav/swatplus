@@ -16,9 +16,10 @@
       end type organic_mass
       type (organic_mass) :: orgz
 
-      type organic_mixing_mass
+      type organic_mixing_mass           !       |used for each layer in mgt_newtillmix
         type (organic_mass) :: tot       !       |total organic pool
-        type (organic_mass), dimension(12) :: rsd   !   |fresh residue
+        type (organic_mass) :: surf_rsd  !   |fresh surface residue mixed into layers
+        type (organic_mass), dimension(12) :: rsd   !   |fresh soil residue (max 12 plants)
         !! humus pools for old mineralization model (static carbon)
         type (organic_mass) :: hact      !       |active humus for old mineralization model
         type (organic_mass) :: hsta      !       |stable humus for old mineralization model
@@ -83,8 +84,11 @@
         !! tot and rsd used for both carbon methods
         type (organic_mass), dimension(:), allocatable :: tot       !       |total organic pool dimensioned by layer
         type (organic_mass), dimension(:), allocatable :: seq       !       |total sequestered organic pool dimensioned by layer, surface layer = 0.0
+        real :: seq_tot_300_c                                       !       |total sequestered equal to or above 300mm soil depth
+        real :: tot_300_c                                           !       |total carbon equal to or above 300mm soil depth
         type (plant_residue), dimension(:), allocatable :: pl       !       |fresh surface residue dimensioned by plant and by layer
         type (organic_mass), dimension(:), allocatable :: rsd_tot   !       |total fresh surface residue dimensioned by layer
+        type (organic_mass), dimension(:), allocatable :: root_tot   !       |total live roots dimensioned by layer
         !! humus pools for old mineralization model (static carbon)
         type (organic_controls),    dimension(:), allocatable :: org_con_lr  !      |organic contral variables by layer
         type (organic_allocations), dimension(:), allocatable :: org_allo_lr !      |organic allocation variables by layer
@@ -112,6 +116,8 @@
       type (soil_profile_mass), dimension(:), allocatable, target :: soil1
       type (soil_profile_mass), dimension(:), allocatable :: soil1_init
       type (organic_mass) :: soil_prof_tot                          !       |total organic pool for profile (summed by layer)
+      type (organic_mass) :: soil_prof_root                         !       |total live roots for profile (summed by lower layers)
+      real                :: soil_prof_root_frac = 0.0              !       |total live root fraction for profile (summed by lower layers)
       type (organic_mass) :: soil_prof_rsd                          !       |total fresh organic residue pool for profile (summed by lower layers)
       type (organic_mass) :: soil_prof_srsd                         !       |total fresh organic residue pool for surface
       type (organic_mass) :: soil_prof_hact                         !       |total active humus pool for profile (summed by layer)
@@ -142,6 +148,7 @@
       real :: bsn_mn = 0.                                           !       |total mineral n pool (no3+nh4) in basin
       real :: bsn_mp = 0.                                           !       |mineral p pool (wsol+lab+act+sta) in basin
       type (organic_mass) :: decomp                                 !       |temporary storage for residue decomp
+      type (organic_mass) :: transfer                               !       |temporary storage for residue decomp
       type (organic_mass) :: pl_burn                                !       |residue and plant mass burned in fire
       type (organic_mass) :: rsd_meta                               !       |temporary storage for initial metabolic litter
       type (organic_mass) :: rsd_str                                !       |temporary storage for initial structural litter

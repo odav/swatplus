@@ -118,7 +118,7 @@
       real :: usgs_long = 0.          !          |
       real(8) :: usgs_site_id = 0.d0  !          |
       !national model variables
-      integer :: huc12_connect(1000) = 0!          |huc12 catchments that are in connection with cells
+      integer :: huc12_connect(1000) = 0!        |huc12 catchments that are in connection with cells
       real(8) :: huc12_id = 0.d0      !          |
       real(8) :: huc12_dum = 0.d0     !          |
       !dummy variables for reading
@@ -170,7 +170,7 @@
       write(out_gw,*) '     reading basic information...'
       read(in_gw,*) grid_type                       !structured or unstructured
       if (grid_type == "structured") then
-        read(in_gw,*) cell_size                     !area (m2) of each grid cell
+        read(in_gw,*) cell_size                     !cell size (m) of each grid cell
         read(in_gw,*) grid_nrow,grid_ncol           !number of rows and columns in the gwflow grid
       else if (grid_type == "unstructured") then
         read(in_gw,*) ncell                         !number of gwflow cells
@@ -630,6 +630,7 @@
       write(out_gw,*) '     reading observation cells'
       read(in_gw,*)
       read(in_gw,*) gw_num_obs_wells
+      allocate (gw_obs_cells_init(gw_num_obs_wells), source = 0)
       allocate (gw_obs_cells(gw_num_obs_wells), source = 0)
       !check to see if there are USGS well names (for the national model)
       inquire(file='usgs_annual_head',exist=i_exist)
@@ -639,9 +640,9 @@
       !loop through the observation well locations
       do k=1,gw_num_obs_wells
         if(usgs_obs == 1) then
-          read(in_gw,*) gw_obs_cells(k),usgs_id(k)
+          read(in_gw,*) gw_obs_cells_init(k),usgs_id(k)
         else
-          read(in_gw,*) gw_obs_cells(k)
+          read(in_gw,*) gw_obs_cells_init(k)
         endif
       enddo
       allocate (gw_obs_head(gw_num_obs_wells), source = 0.)
@@ -649,13 +650,13 @@
       !open file for writing out daily head values
       open(out_gwobs,file='gwflow_state_obs_head')
       write(out_gwobs,*) 'Daily head (m) values for observation wells'
-      write(out_gwobs,123) 'cell:',(gw_obs_cells(k),k=1,gw_num_obs_wells)
+      write(out_gwobs,123) 'cell:',(gw_obs_cells_init(k),k=1,gw_num_obs_wells)
       write(out_gwobs,*)
       gw_output_index = 1 !start output index at 1
       !if structured grid, then convert cell ids
       do k=1,gw_num_obs_wells
         if(grid_type == "structured") then
-          gw_obs_cells(k) = cell_id_list(gw_obs_cells(k))
+          gw_obs_cells(k) = cell_id_list(gw_obs_cells_init(k))
         endif
       enddo
 
@@ -1647,7 +1648,7 @@
         !open file for writing observation values; allocate arrays for observation cells
         open(out_gwobs_sol,file='gwflow_state_obs_conc')
         write(out_gwobs_sol,*) 'Daily solute concentration (mg/L) values for observation wells'
-        write(out_gwobs_sol,123) 'cell:',(gw_obs_cells(k),k=1,gw_num_obs_wells)
+        write(out_gwobs_sol,123) 'cell:',(gw_obs_cells_init(k),k=1,gw_num_obs_wells)
         write(out_gwobs_sol,*)
         allocate (gw_obs_solute(gw_num_obs_wells,gw_nsolute), source = 0.)
         gw_obs_solute = 0.

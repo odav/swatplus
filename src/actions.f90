@@ -4,7 +4,7 @@
       use time_module
       use aquifer_module
       use hru_module, only : hru, cn2, fertno3, fertnh3, fertorgn, fertorgp, fertsolp,   &
-        ihru, ipl, isol,  phubase, sol_sumno3, sol_sumsolp, qtile
+        ihru, ipl, isol,  phubase, sol_sumno3, sol_sumsolp, qtile, snodb
       use soil_module
       use plant_module
       use plant_data_module
@@ -91,6 +91,7 @@
       real :: stor_m3 = 0.
       character(len=1) :: action = ""      !         |
       character(len=40) :: lu_prev = ""    !         |
+      character(len=40) :: snow_prev = ""  !         |
 
       do iac = 1, d_tbl%acts
         action = "n"
@@ -140,11 +141,11 @@
                 irrop = d_tbl%act_typ(iac)      ! irrigation application type in irr.ops
                 irrig(j)%demand = d_tbl%act(iac)%const * hru(j)%area_ha * 10.       ! m3 = mm * ha * 10.
             
-            !! if unlimited source, set irrigation applied directly to hru
-            if (d_tbl%act(iac)%file_pointer == "unlim") then
-              irrig(j)%applied = irrop_db(irrop)%amt_mm * irrop_db(irrop)%eff * (1. - irrop_db(irrop)%surq)
-              irrig(j)%runoff = irrop_db(irrop)%amt_mm * irrop_db(irrop)%eff * irrop_db(irrop)%surq
-            end if  
+                !! if unlimited source, set irrigation applied directly to hru
+                if (d_tbl%act(iac)%file_pointer == "unlim") then
+                  irrig(j)%applied = irrop_db(irrop)%amt_mm * irrop_db(irrop)%eff * (1. - irrop_db(irrop)%surq)
+                  irrig(j)%runoff = irrop_db(irrop)%amt_mm * irrop_db(irrop)%eff * irrop_db(irrop)%surq
+                end if  
               
                 !set organics and constituents from irr.ops ! irrig(j)%water =  cs_irr(j) = 
                 if (pco%mgtout == "y") then
@@ -162,6 +163,33 @@
               end if
             endif
 
+          ! Jose 2025 - add for recording reservoir irrigation demand (future plan is to fully integrate in water allocation module)
+          case ("res_irr_dmd")
+            ipl = 1
+            j = ob_cur                      ! hru number
+
+            !select object type
+            iob = d_tbl%act(iac)%ob_num
+
+            irrig(j)%demand         = d_tbl%act(iac)%const * hru(j)%area_ha * 10.       ! m3 = mm * ha * 10.
+            res_ob(iob)%irrig_track = res_ob(iob)%irrig_track + 1                       ! Tracker to update irrigation demand
+            res_ob(iob)%d_irrig_day = irrig(j)%demand
+
+          !irrigate demand - water allocation action - only irrigates if adequate water is available
+          case ("irr_wallo")
+            ipl = 1
+            j = ob_cur                      ! hru number
+            
+            irrop = d_tbl%act_typ(iac)      ! irrigation application type in irr.ops
+
+            if (d_tbl%act(iac)%name=='ponding') then !paddy irrigation
+              hru(j)%irr_hmax = d_tbl%act(iac)%const !mm
+              hru(j)%irr_hmin = d_tbl%act(iac)%const2 !mm
+              irrig(j)%demand = max(0.,d_tbl%act(iac)%const-wet_ob(j)%depth*1000.) * hru(j)%area_ha * 10.       ! m3 = mm * ha * 10.
+            else
+              irrig(j)%demand = d_tbl%act(iac)%const * hru(j)%area_ha * 10.       ! m3 = mm * ha * 10.
+            end if
+                
           !irrigate - hru action
           case ("irrigate")
             ipl = 1
@@ -724,25 +752,49 @@
               hlt(j)%hufh = 0.
               hlt(j)%aet = 0.
               hlt(j)%pet = 0.
-
-          !! drainage water management
-          case ("tiledep_control") !! set drain depth for drainage water management
+      
+          !! set the amount of water to be diverted from channel in water allocation
+          case ("divert") 
             j = d_tbl%act(iac)%ob_num
             if (j == 0) j = ob_cur
             
-            if (pcom(j)%dtbl(idtbl)%num_actions(iac) <= Int(d_tbl%act(iac)%const2)) then
-              istr = hru(j)%tiledrain
-              hru(j)%lumv%sdr_dep = d_tbl%act(iac)%const
-              pcom(j)%dtbl(idtbl)%num_actions(iac) = pcom(j)%dtbl(idtbl)%num_actions(iac) + 1
+            ! option to set tile flow directed toward the saturated buffer hru
+            select case (d_tbl%act(iac)%option)
+                
+            case ("flo_cms")    !! set water diverted - can't be more than actual flow/volume
+              trn_m3 = Min (ht2%flo, d_tbl%act(iac)%const * 86400.)
+
+            case ("min_cms")    !! divert at least the minimum flow rate
+              trn_m3 = Max (ht2%flo, d_tbl%act(iac)%const * 86400.)
               
-              if (pco%mgtout == "y") then
-                write (2612, *) j, time%yrc, time%mo, time%day_mo, tilldb(idtill)%tillnm, "  DRAIN_CONTROL",    &
-                    phubase(j), pcom(j)%plcur(1)%phuacc, soil(j)%sw, pl_mass(j)%tot(1)%m,        &
-                    pl_mass(j)%rsd_tot%m, sol_sumno3(j), sol_sumsolp(j), hru(j)%lumv%sdr_dep
-              end if
-            end if
-                                   
-          ! set the amount of water to be diverted
+            case ("max_cms")    !! divert the maximum flow rate - can't be more than actual flow
+              trn_m3 = Min (ht2%flo, d_tbl%act(iac)%const * 86400.)
+              
+            case ("all_flo")    !! all flow diverted
+              trn_m3 = ht2%flo
+
+            case ("zero_flo")   !! no flow diverted
+              trn_m3 = 0.
+
+            case ("frac")   !! constant fraction 
+              trn_m3 = d_tbl%act(iac)%const * ht2%flo
+                
+            end select
+                   
+          !! set the amount of water to be transferred in water allocation
+          case ("transfer") 
+            j = d_tbl%act(iac)%ob_num
+            if (j == 0) j = ob_cur
+            
+            ! option to set tile flow directed toward the saturated buffer hru
+            select case (d_tbl%act(iac)%option)
+                
+            case ("flo_cms")    !! set water to be transferred
+              trn_m3 = d_tbl%act(iac)%const * 86400.   !! m3/s to m3
+              
+            end select
+                 
+          ! set the amount of water to be diverted from tile
           case ("tileflo_contol") 
             j = d_tbl%act(iac)%ob_num
             if (j == 0) j = ob_cur
@@ -765,13 +817,30 @@
             case ("all_flo")    !! all flow diverted
               hru(hru_rcv)%sb%inflo = qtile
 
-            case ("zero_flo")    !! all flow diverted
+            case ("zero_flo")    !! no flow diverted
               hru(hru_rcv)%sb%inflo = 0.
 
             case ("frac")   !! minimum - constant fraction 
               hru(hru_rcv)%sb%inflo = d_tbl%act(iac)%const * qtile
                 
             end select
+                                                            
+          !! drainage water management
+          case ("tiledep_control") !! set drain depth for drainage water management
+            j = d_tbl%act(iac)%ob_num
+            if (j == 0) j = ob_cur
+            
+            if (pcom(j)%dtbl(idtbl)%num_actions(iac) <= Int(d_tbl%act(iac)%const2)) then
+              istr = hru(j)%tiledrain
+              hru(j)%lumv%sdr_dep = d_tbl%act(iac)%const
+              pcom(j)%dtbl(idtbl)%num_actions(iac) = pcom(j)%dtbl(idtbl)%num_actions(iac) + 1
+              
+              if (pco%mgtout == "y") then
+                write (2612, *) j, time%yrc, time%mo, time%day_mo, tilldb(idtill)%tillnm, "  DRAIN_CONTROL",    &
+                    phubase(j), pcom(j)%plcur(1)%phuacc, soil(j)%sw, pl_mass(j)%tot(1)%m,        &
+                    pl_mass(j)%rsd_tot%m, sol_sumno3(j), sol_sumsolp(j), hru(j)%lumv%sdr_dep
+              end if
+            end if
                             
           ! set the demand from a reservoir
           case ("res_demand") 
@@ -932,6 +1001,22 @@
               end do
               !pcom(j)%dtbl(idtbl)%num_actions(iac) = pcom(j)%dtbl(idtbl)%num_actions(iac) + 1
             !end if
+            
+          !snow change - change snow parameters for HRU
+          case ("snow_change")
+            j = d_tbl%act(iac)%ob_num
+            if (j == 0) j = ob_cur
+            d_tbl%snow_chg_mx(iac) = d_tbl%snow_chg_mx(iac) + 1
+            ilu = d_tbl%act_typ(iac)
+            hru(j)%dbs%snow = ilu
+            
+            snow_prev = hru(j)%dbsc%snow
+            hru(j)%dbsc%snow = d_tbl%act(iac)%file_pointer
+            hru(j)%sno = snodb(ilu)
+            !! write to lu_change output file
+            write (3612,*) j, time%yrc, time%mo, time%day_mo,  " SNOW_CHANGE ",        &
+                    snow_prev, hru(j)%dbsc%snow, "   0   0"
+                            
           !land use change - contouring
           case ("p_factor")
             j = d_tbl%act(iac)%ob_num

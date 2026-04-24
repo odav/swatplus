@@ -97,7 +97,7 @@
         real :: no3atmo = 0.            !kg N/ha        |nitrate added to the soil from atmospheric deposition
         real :: nh4atmo = 0.            !kg N/ha        |ammonia added to the soil from atmospheric deposition
         real :: nuptake = 0.            !kg N/ha        |plant nitrogen uptake
-        real :: puptake = 0.            !kg N/ha        |plant phosphorus uptake
+        real :: puptake = 0.            !kg P/ha        |plant phosphorus uptake
         real :: gwsoiln = 0.            !kg N/ha        |nitrate added to the soil from the aquifer (rtb gwflow)
         real :: gwsoilp = 0.            !kg P/ha        |Phos added to the soil from the aquifer (rtb gwflow)
       end type output_nutbal
@@ -138,7 +138,7 @@
         real :: act_sta_n = 0.          !kg N/ha        |nitrogen moving from active organic pool to stable pool
         real :: org_lab_p = 0.          !kg P/ha        |phosphorus moving from the organic pool to labile pool
         real :: rsd_hs_c = 0.           !kg C/ha        |amt of carbon moving from the fresh org (residue) to soil slow humus 
-        real :: rsd_nitorg_n = 0.       !kg P/ha        |nitrogen moving from the fresh organic pool (residue) to nitrate
+        real :: rsd_nitorg_n = 0.       !kg N/ha        |nitrogen moving from the fresh organic pool (residue) to nitrate
         real :: rsd_laborg_p = 0.       !kg P/ha        |phosphorus moving from the fresh organic pool (residue) to the labile (80%)
                                                         !   and org (20%) pools
       end type output_nutcarb_cycling
@@ -196,7 +196,7 @@
         real :: sedminp = 0.        !kg P/ha        |mineral phosphorus leaving the landscape transported in sediment
         real :: tileno3 = 0.        !kg N/ha        |nitrate NO3 in tile flow
         real :: lchlabp = 0.        !kg P/ha        |soluble P (labile) leaching past bottom soil layer
-        real :: tilelabp = 0.       !kg N/ha        |soluble P (labile) NO3 in tile flow
+        real :: tilelabp = 0.       !kg P/ha        |soluble P (labile) in tile flow
         real :: satexn = 0.         !kg N/ha        | amt of NO3-N in saturation excess surface runoff in HRU for the day
       end type output_losses
       
@@ -464,18 +464,18 @@
         character (len=8) :: isd        =  "   unit "
         character (len=8) :: id         =  " gis_id "
         character (len=16) :: name      =  " name      "
-        character (len=12) :: sedyld    =  "      sedyld"
-        character (len=12)  :: sedorgn  =  "     sedorgn"
-        character (len=12)  :: sedorgp  =  "     sedorgp"
-        character (len=12)  :: surqno3  =  "     surqno3"
-        character (len=12)  :: latno3   =  "     lat3no3"
-        character (len=12)  :: surqsolp =  "    surqsolp"
-        character (len=12)  :: usle     =  "        usle"
-        character (len=12)  :: sedminp  =  "     sedminp"
-        character (len=12)  :: tileno3  =  "     tileno3"
-        character (len=12)  :: lchlabp  =  "     lchlabp"
-        character (len=12)  :: tilelabp =  "    tilelabp"
-        character (len=12)  :: satexn   =  "      satexn"
+        character (len=17) :: sedyld    =  "           sedyld"
+        character (len=17)  :: sedorgn  =  "          sedorgn"
+        character (len=17)  :: sedorgp  =  "          sedorgp"
+        character (len=17)  :: surqno3  =  "          surqno3"
+        character (len=17)  :: latno3   =  "          lat3no3"
+        character (len=17)  :: surqsolp =  "         surqsolp"
+        character (len=17)  :: usle     =  "             usle"
+        character (len=17)  :: sedminp  =  "          sedminp"
+        character (len=17)  :: tileno3  =  "          tileno3"
+        character (len=17)  :: lchlabp  =  "          lchlabp"
+        character (len=17)  :: tilelabp =  "         tilelabp"
+        character (len=17)  :: satexn   =  "           satexn"
         character (len=16)  :: plt_cov  =  "    plant_cov    "
         character (len=30)  :: mgt_ops  =  "    mgt_ops      "
         character (len=12)  :: percn    =  "       percn"
@@ -490,18 +490,18 @@
         character (len=8) :: isd        =  "        "
         character (len=8) :: id         =  "        "
         character (len=16) :: name      =   "                "
-        character (len=12)  :: sedyld    =  "         tha"
-        character (len=12)  :: sedorgn   =  "        kgha"
-        character (len=12)  :: sedorgp   =  "        kgha"
-        character (len=12)  :: surqno3   =  "        kgha"
-        character (len=12)  :: latno3    =  "        kgha"
-        character (len=12)  :: surqsolp  =  "        kgha"
-        character (len=12)  :: usle      =  "        tons"
-        character (len=12)  :: sedmin    =  "        kgha"
-        character (len=12)  :: tileno3   =  "        kgha"
-        character (len=12)  :: lchlabp   =  "        kgha"
-        character (len=12)  :: tilelabp  =  "        kgha"
-        character (len=12)  :: satexn    =  "        kgha"
+        character (len=17)  :: sedyld    =  "              tha"
+        character (len=17)  :: sedorgn   =  "             kgha"
+        character (len=17)  :: sedorgp   =  "             kgha"
+        character (len=17)  :: surqno3   =  "             kgha"
+        character (len=17)  :: latno3    =  "             kgha"
+        character (len=17)  :: surqsolp  =  "             kgha"
+        character (len=17)  :: usle      =  "             tons"
+        character (len=17)  :: sedmin    =  "             kgha"
+        character (len=17)  :: tileno3   =  "             kgha"
+        character (len=17)  :: lchlabp   =  "             kgha"
+        character (len=17)  :: tilelabp  =  "             kgha"
+        character (len=17)  :: satexn    =  "             kgha"
         character (len=16)  :: plt_cov  =  "                 "
         character (len=30)  :: mgt_ops  =  "                 "
         character (len=12)  :: percn     =  "        kgha"
@@ -784,8 +784,8 @@
      type output_plc_header     
          character (len=7) ::  freq          =    "freq   "
          character (len=11) :: day           =    "       jday"
-         character (len=11) :: mo            =    "        mon"
          character (len=11) :: day_mo        =    "        day"
+         character (len=11) :: mo            =    "        mon"
          character (len=11) :: yrc           =    "         yr"
          character (len=16) :: isd           =    "            unit"
          character (len=21) :: id            =    "              gis_id "
@@ -796,14 +796,15 @@
          character(len=15)  :: stem_c    =    "         stem_c"
          character(len=15)  :: seed_c    =    "         seed_c"
          character(len=15)  :: root_c    =    "         root_c"
+         character(len=15)  :: rsd_c     =    "     surf_rsd_c"
          end type output_plc_header       
       type (output_plc_header) :: plc_hdr
       
       type output_plc_header_units      
          character (len=7) ::  freq         =    "       "
          character (len=11) :: day          =    "           "
-         character (len=11) :: mo           =    "           "
          character (len=11) :: day_mo       =    "           "
+         character (len=11) :: mo           =    "           "
          character (len=11) :: yrc          =    "           "
          character (len=16)  :: isd         =  "           "
          character (len=21) :: id           =  "                "
@@ -814,6 +815,7 @@
          character(len=15)  :: stem_c    =    "          kg/ha"
          character(len=15)  :: seed_c    =    "          kg/ha"
          character(len=15)  :: root_c    =    "          kg/ha"
+         character(len=15)  :: rsd_c     =    "          kg/ha"
         end type output_plc_header_units         
       type (output_plc_header_units) :: plc_hdr_units
 
@@ -836,6 +838,8 @@
          character(len=15)  :: meta_surf_c   =    "    meta_surf_c"         
          character(len=15)  :: str_surf_c    =    "     str_surf_c"  
          character(len=15)  :: lig_surf_c    =    "     lig_surf_c"      
+         character(len=15)  :: root_frac_c   =    "   liveroot_fac"
+         character(len=15)  :: root_soil_c   =    " liveroot_tot_m"
          character(len=15)  :: tot_soil_c    =    "      res_tot_c"
          character(len=15)  :: meta_soil_c   =    "     meta_tot_c"         
          character(len=15)  :: str_soil_c    =    "      str_tot_c"  
@@ -858,6 +862,8 @@
          character(len=15)  :: meta_c       =  "          kg/ha"
          character(len=15)  :: str_c        =  "          kg/ha"
          character(len=15)  :: lig_c        =  "          kg/ha"
+         character(len=15)  :: root_frac_c  =  "           frac"
+         character(len=15)  :: root_soil_c  =  "          kg/ha"
          character(len=15)  :: tot_soil_c   =  "          kg/ha"
          character(len=15)  :: meta_soil_c  =  "          kg/ha"         
          character(len=15)  :: str_soil_c   =  "          kg/ha"  
@@ -1148,7 +1154,7 @@
          character(len=15)  :: meta_c        =    "    metabolic_c"         
          character(len=15)  :: hs_c          =    "           hs_c"         
          character(len=15)  :: hp_c          =    "           hp_c"         
-         character(len=15)  :: microb_c      =    "    microbial_c"         
+         character(len=15)  :: microb_c      =    "   microbrial_c"         
          character(len=15)  :: lig_c         =    "       lignin_c"      
          character(len=15)  :: water_c       =    "        water_c"
          character(len=15)  :: manure_c      =    "       manure_c"  

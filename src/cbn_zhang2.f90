@@ -682,15 +682,10 @@
               
         !     update
               if (rnmn > 0.) then
-                soil1(j)%mn(k)%nh4 = soil1(j)%mn(k)%nh4 + rnmn     
-                min_n = soil1(j)%mn(k)%no3 - rnmn
-                if (min_n < 0.) then
-                  rnmn = -soil1(j)%mn(k)%no3
-                  soil1(j)%mn(k)%no3 = 1.e-10
-                else
-                  soil1(j)%mn(k)%no3 = min_n
-                end if   
-                ! print*, "2. in cbn_zhang2", k, soil1(j)%mn(k)%no3, rnmn
+                min_n = Max(0., soil1(j)%mn(k)%no3 - rnmn)
+                soil1(j)%mn(k)%nh4 = soil1(j)%mn(k)%nh4 + min_n
+                soil1(j)%mn(k)%no3 = soil1(j)%mn(k)%no3 - min_n
+                ! print*, "2. in cbn_zhang2", k, soil1(j)%mn(k)%no3, min_n
               end if
               
 	          ! calculate p flows
@@ -704,7 +699,7 @@
               soil1(j)%mp(k)%lab = soil1(j)%mp(k)%lab + hmp	          
 	
 	          !! compute residue decomp and mineralization of 
-              !! fresh organic n and p (upper two layers only)  
+              !! fresh organic n and p  
                 decr = (lscta + lmcta) / (soil1(j)%str(k)%c + soil1(j)%meta(k)%c + 1.e-6)
                 decr = min(1., decr)
                 rmp = decr * soil1(j)%tot(k)%p
@@ -719,7 +714,7 @@
 	            lscta = min(soil1(j)%str(k)%c, lscta)              
               lslcta = min(soil1(j)%lig(k)%c, lslcta)
               
-              !org_flux%co2fstr = .3 * lslcta
+              org_flux%co2fstr = .3 * lslcta
               org_flux%co2fstr = org_allo(cf_lyr)%a1co2 * lslncta
               
               org_flux%cfstrs1 = a1 * lslncta

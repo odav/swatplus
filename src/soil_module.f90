@@ -16,7 +16,6 @@
         real :: prk = 0.         !! mm H2O         percolation from soil layer on current day
         real :: volcr = 0.       !! mm             crack volume for soil layer 
         real :: tillagef = 0.
-        real :: rtfr = 0.        !! none           root fraction
         real :: watp = 0.
         integer :: a_days = 0
         integer :: b_days = 0
@@ -64,7 +63,7 @@
         real :: clay = 0.             !! %            | percent clay
       end type soil_test
       type (soil_test), dimension(:), allocatable :: sol_test
-      integer :: nmbr_soil_tests = 0 !! none         |number of soil carbon tests 
+      integer :: nmbr_soil_test_layers = 0 !! none         |number of soil carbon tests 
 
       type soil_profile
         character(len=16) :: snam = ""     !! NA            soil series name  

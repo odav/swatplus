@@ -50,7 +50,8 @@
                   rsd_decomp, salt_chem_hru, salt_lch, salt_rain, salt_roadsalt, smp_bmpfixed, smp_filter, &
                   smp_grass_wway, sq_canopyint, sq_snom, sq_surfst, stmp_solt, stor_surfstor, surface, &
                   swr_latsed, swr_percmain, swr_substor, swr_subwq, varinit, wet_irrp, wetland_control, &
-                  sq_crackvol, mgt_operatn, mgt_newtillmix, sep_biozone, pest_washp, pest_pesty, smp_buffer
+                  sq_crackvol, mgt_operatn, mgt_newtillmix, sep_biozone, pest_washp, pest_pesty, smp_buffer, &
+                  mgt_newtillmix_3, cbn_surfrsd_decomp
 
       integer :: j = 0              !none          |same as ihru (hru number)
       integer :: j1 = 0             !none          |counter (rtb)
@@ -137,7 +138,7 @@
       hwb_d(j)%wet_out = 0.
       hnb_d(j)%denit = 0.
 
-      if (bsn_cc%cswat == 2) then
+      if (bsn_cc%cswat == 2 .or. bsn_cc%cswat == 3) then
         if (tillage_switch(ihru) .eq. 1) then
           if (tillage_days(ihru) .ge. 30) then
             tillage_switch(ihru) = 0
@@ -366,11 +367,11 @@
           end if
         end if
        
-        !! compute surface residue decomposition for each plant in community
-        call rsd_decomp
-        
         !! compute residue decomposition and nitrogen and phosphorus mineralization
         if (bsn_cc%cswat == 0) then
+          !! compute surface residue decomposition for each plant in community
+          call rsd_decomp
+          !! compute soil residue (roots and tilled in) decomposition and nitrogen and phosphorus mineralization
           call nut_nminrl
           !call nut_nitvol
         end if
@@ -378,7 +379,21 @@
         !! compute residue decomposition and nitrogen and phosphorus mineralization
         if (bsn_cc%cswat == 2) then
           if (bmix_eff > 1.e-6) call mgt_newtillmix (ihru, bmix_eff, 0)
+          !! compute surface residue decomposition for each plant in community
+          call cbn_surfrsd_decomp
+          !! compute soil residue (roots and tilled in) decomposition
           call cbn_rsd_decomp      ! added by JC and FG, modified from nut_minrln.f90
+          !! compute mineralization and carbon pool transformations
+          call cbn_zhang2
+        end if
+
+        if (bsn_cc%cswat == 3) then
+          if (bmix_eff > 1.e-6) call mgt_newtillmix_3 (ihru, bmix_eff, 0)
+          !! compute surface residue decomposition for each plant in community
+          call cbn_surfrsd_decomp_3
+          !! compute soil residue (roots and tilled in) decomposition
+          call cbn_rsd_transfer      ! added by JC and FG, modified from nut_minrln.f90 and modified by fg to transfer soil residue to meta, str, lig
+          !! compute mineralization and carbon pool transformations
           call cbn_zhang2
         end if
 
@@ -406,17 +421,6 @@
         !if (j == 173) then
         !  write (7778,*) time%day, j, sedyld(j)/hru(j)%area_ha, usle_cfac(j), surfq(j), qp_cms
         !end if
-
-        !! check irrigation demand decision table for water allocation (after adding irrigation)
-        if (hru(j)%irr_trn_dtbl > 0) then
-          id = hru(j)%irr_trn_dtbl
-          jj = j
-          d_tbl => dtbl_lum(id)
-          !! iauto points to pcom(j)%dtbl(iauto) for days between operation
-          iauto = hru(j)%irr_trn_iauto
-          call conditions (jj, iauto)
-          call actions (jj, iob, iauto)
-        end if
 
         soil_prof_labp = 0.
         do ly = 1, soil(j)%nly
@@ -529,13 +533,8 @@
               call nut_orgn
             end if
         
-            !! C-Farm (Armen) c and organic n in runoff
-            if (bsn_cc%cswat == 1) then
-              call nut_orgnc
-            end if
-      
             !! SWAT-C Xuesong -- c and organic n in runoff
-            if (bsn_cc%cswat == 2) then
+            if (bsn_cc%cswat == 2 .or. bsn_cc%cswat == 3) then
               call nut_orgnc2
             end if
             call nut_psed

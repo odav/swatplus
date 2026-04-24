@@ -80,7 +80,6 @@
       integer :: curyr = 0           !              |
       integer :: mo = 0              !              |
       integer :: day_mo = 0          !              |
-      integer :: iwallo = 0
       integer :: imallo = 0
       integer :: ires = 0
       
@@ -217,6 +216,13 @@
           !! initialize variables at beginning of day for hru's
           if (sp_ob%hru > 0) call sim_initday
 
+          !! initialize variables at beginning of day for water allocation
+          !! zero demand, withdrawal, and unmet for entire allocation object
+          wallo(:)%tot = walloz
+          !! zero water treatment and use outflow in case they receive water multiple times
+          wtp_om_out(:) = hz
+          wuse_om_out(:) = hz
+
           if (time%yrs > pco%nyskip) ndmo(time%mo) = ndmo(time%mo) + 1
 
           call climate_control      !! read in/generate weather
@@ -232,15 +238,6 @@
               call actions (j, iob, id)
             end do
           end do
-
-          !! allocate water for water rights objects
-          if (db_mx%wallo_db > 0) then
-            do iwallo = 1, db_mx%wallo_db
-              !! if a channel is not an object, call at beginning of day
-              j = iwallo    ! to avoid a compiler warning
-              if (wallo(iwallo)%cha_ob == "n") call wallo_control (j)
-            end do
-          end if
 
           !! allocate manure to appropriate demand objects
           if (db_mx%mallo_db > 0) then
@@ -335,7 +332,7 @@
           end if
         
           !! compute biological mixing at the end of every year
-          if (bsn_cc%cswat /= 2) then                                       !! fg added this because so that cbn_zhang2 can handle bio mixing directly
+          if (bsn_cc%cswat /= 2 .and. bsn_cc%cswat /= 3) then  !! fg added this because so that cbn_zhang2 can handle bio mixing directlyn
             if (hru(j)%hyd%biomix > 1.e-6) call mgt_newtillmix (j, hru(j)%hyd%biomix, 0)
           end if
 
