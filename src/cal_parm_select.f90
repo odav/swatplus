@@ -36,6 +36,8 @@
       use plant_module
       use plant_data_module
       use gwflow_module
+      use carbon_module
+      use tillage_data_module
       
       implicit none
       
@@ -53,6 +55,7 @@
       integer :: ipl = 0                                    !                |soil layer counter
       integer :: ihru = 0                                   !                |hru counter
       integer :: icell                                      !                |gwflow cell counter (rtb)
+      integer :: ichan                                      !                |gwflow channel counter
       real :: exp                                           !                | 
       real :: c_val = 0.                                    !                | 
       real :: abmax = 0.                                    !                | 
@@ -464,6 +467,95 @@
       case ("dorm_hr")
         bsn_prm%dorm_hr = chg_par(bsn_prm%dorm_hr,                      &
                          chg_typ, chg_val, absmin, absmax)
+
+!!     carbon model basin-wide tunables (read from carbon.bsn).
+      case ("init_seq")
+        org_frac%frac_seq = chg_par(org_frac%frac_seq, chg_typ, chg_val, absmin, absmax)
+      case ("init_microb")
+        org_frac%frac_hum_microb = chg_par(org_frac%frac_hum_microb, chg_typ, chg_val, absmin, absmax)
+      case ("init_slow")
+        org_frac%frac_hum_slow = chg_par(org_frac%frac_hum_slow, chg_typ, chg_val, absmin, absmax)
+      case ("init_passive")
+        org_frac%frac_hum_passive = chg_par(org_frac%frac_hum_passive, chg_typ, chg_val, absmin, absmax)
+      case ("koc_c")
+        cb_wtr_coef%prmt_21 = chg_par(cb_wtr_coef%prmt_21, chg_typ, chg_val, absmin, absmax)
+      case ("solc_ratio")
+        cb_wtr_coef%prmt_44 = chg_par(cb_wtr_coef%prmt_44, chg_typ, chg_val, absmin, absmax)
+      case ("manure_c_frac")
+        man_coef%rtof = chg_par(man_coef%rtof, chg_typ, chg_val, absmin, absmax)
+      case ("bio_consol")
+        bio_consf = chg_par(bio_consf, chg_typ, chg_val, absmin, absmax)
+      case ("till_consol")
+        till_consf = chg_par(till_consf, chg_typ, chg_val, absmin, absmax)
+      case ("sfc_rsd_photodeg")
+        photo_degrade_factor = chg_par(photo_degrade_factor, chg_typ, chg_val, absmin, absmax)
+      case ("n_act_frac")
+        n_act_frac = chg_par(n_act_frac, chg_typ, chg_val, absmin, absmax)
+      case ("cnr_cap")
+        cnr_cap = chg_par(cnr_cap, chg_typ, chg_val, absmin, absmax)
+      case ("cnr_ref")
+        cnr_ref = chg_par(cnr_ref, chg_typ, chg_val, absmin, absmax)
+      case ("cpr_cap")
+        cpr_cap = chg_par(cpr_cap, chg_typ, chg_val, absmin, absmax)
+      case ("cpr_ref")
+        cpr_ref = chg_par(cpr_ref, chg_typ, chg_val, absmin, absmax)
+      case ("t_cbn_min")
+        org_con%tn = chg_par(org_con%tn, chg_typ, chg_val, absmin, absmax)
+      case ("t_cbn_opt")
+        org_con%top = chg_par(org_con%top, chg_typ, chg_val, absmin, absmax)
+      case ("t_cbn_max")
+        org_con%tx = chg_par(org_con%tx, chg_typ, chg_val, absmin, absmax)
+
+!!     per-layer carbon coefficients (carbon_lyr.bsn). Address by `ly`.
+!!     carbdb(:) and org_allo(:) are sized dimension(2): ly=1 = top, ly=2 = subsurface.
+      case ("hp_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%hp_rate = chg_par(carbdb(ly)%hp_rate, chg_typ, chg_val, absmin, absmax)
+      case ("hs_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%hs_rate = chg_par(carbdb(ly)%hs_rate, chg_typ, chg_val, absmin, absmax)
+      case ("microb_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%microb_rate = chg_par(carbdb(ly)%microb_rate, chg_typ, chg_val, absmin, absmax)
+      case ("meta_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%meta_rate = chg_par(carbdb(ly)%meta_rate, chg_typ, chg_val, absmin, absmax)
+      case ("str_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%str_rate = chg_par(carbdb(ly)%str_rate, chg_typ, chg_val, absmin, absmax)
+      case ("microb_top_rate")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%microb_top_rate = chg_par(carbdb(ly)%microb_top_rate, chg_typ, chg_val, absmin, absmax)
+      case ("hs_hp")
+        if (ly >= 1 .and. ly <= size(carbdb)) carbdb(ly)%hs_hp = chg_par(carbdb(ly)%hs_hp, chg_typ, chg_val, absmin, absmax)
+      case ("a1co2")
+        if (ly >= 1 .and. ly <= size(org_allo)) org_allo(ly)%a1co2 = chg_par(org_allo(ly)%a1co2, chg_typ, chg_val, absmin, absmax)
+      case ("asco2")
+        if (ly >= 1 .and. ly <= size(org_allo)) org_allo(ly)%asco2 = chg_par(org_allo(ly)%asco2, chg_typ, chg_val, absmin, absmax)
+      case ("apco2")
+        if (ly >= 1 .and. ly <= size(org_allo)) org_allo(ly)%apco2 = chg_par(org_allo(ly)%apco2, chg_typ, chg_val, absmin, absmax)
+      case ("abco2")
+        if (ly >= 1 .and. ly <= size(org_allo)) org_allo(ly)%abco2 = chg_par(org_allo(ly)%abco2, chg_typ, chg_val, absmin, absmax)
+
+!!     tillage / biomixing curve-fit coefficients (tillage_data_module).
+      case ("bmix_a")
+        bmix_a = chg_par(bmix_a, chg_typ, chg_val, absmin, absmax)
+      case ("bmix_b")
+        bmix_b = chg_par(bmix_b, chg_typ, chg_val, absmin, absmax)
+      case ("bmix_c")
+        bmix_c = chg_par(bmix_c, chg_typ, chg_val, absmin, absmax)
+      case ("tillmix_a")
+        tillmix_a = chg_par(tillmix_a, chg_typ, chg_val, absmin, absmax)
+      case ("tillmix_b")
+        tillmix_b = chg_par(tillmix_b, chg_typ, chg_val, absmin, absmax)
+      case ("tillmix_c")
+        tillmix_c = chg_par(tillmix_c, chg_typ, chg_val, absmin, absmax)
+
+!!     carbon-relevant plant parameters (plt type, ielem indexes pldb).
+      case ("bio_e")
+        pldb(ielem)%bio_e = chg_par(pldb(ielem)%bio_e, chg_typ, chg_val, absmin, absmax)
+      case ("hvsti")
+        pldb(ielem)%hvsti = chg_par(pldb(ielem)%hvsti, chg_typ, chg_val, absmin, absmax)
+      case ("rdmx")
+        pldb(ielem)%rdmx = chg_par(pldb(ielem)%rdmx, chg_typ, chg_val, absmin, absmax)
+      case ("t_opt")
+        pldb(ielem)%t_opt = chg_par(pldb(ielem)%t_opt, chg_typ, chg_val, absmin, absmax)
+      case ("t_base")
+        pldb(ielem)%t_base = chg_par(pldb(ielem)%t_base, chg_typ, chg_val, absmin, absmax)
 
 !!     SWQ
       case ("mumax")
@@ -963,45 +1055,70 @@
             hlt_db(ielem)%uslels = chg_par (hlt_db(ielem)%uslels, chg_typ, chg_val, absmin, absmax)
 
 
-        !!gwflow (rtb)
-         case ("aquifer_K")
-                    if(bsn_cc%gwflow.eq.1) then
-                      gw_state(ielem)%hydc = chg_par(gw_state(ielem)%hydc, chg_typ, chg_val, absmin, absmax)        
-                        endif
-                        
-                 case ("aquifer_Sy")
-                    if(bsn_cc%gwflow.eq.1) then
-                      gw_state(ielem)%spyd = chg_par(gw_state(ielem)%spyd, chg_typ, chg_val, absmin, absmax)    
-                    endif
-                            
-                 case ("aquifer_delay")
-                    if(bsn_cc%gwflow.eq.1) then
-                      gw_delay(ielem) = chg_par(gw_delay(ielem), chg_typ, chg_val, absmin, absmax)
-            endif
-                            
-                 case ("aquifer_exdp")
-                    if(bsn_cc%gwflow.eq.1) then
-                      gw_state(ielem)%exdp = chg_par(gw_state(ielem)%exdp, chg_typ, chg_val, absmin, absmax)        
-                      endif 
-                            
-                 case ("stream_K")
-                    if(bsn_cc%gwflow.eq.1) then
-                      do icell=1,gw_chan_info(ielem)%ncon !loop through cells connected to channel
-                            gw_chan_info(ielem)%hydc(icell) = chg_par(gw_chan_info(ielem)%hydc(icell), chg_typ, chg_val, absmin, absmax)
-                          enddo
-                    endif
-                            
-                 case ("stream_thk")
-                    if(bsn_cc%gwflow.eq.1) then
-                      do icell=1,gw_chan_info(ielem)%ncon !loop through cells connected to channel
-                            gw_chan_info(ielem)%thck(icell) = chg_par(gw_chan_info(ielem)%thck(icell), chg_typ, chg_val, absmin, absmax)
-                          enddo
-                    endif
-                            
-                 case ("stream_bed")
-                    if(bsn_cc%gwflow.eq.1) then
-                      gw_bed_change = chg_par(gw_bed_change, chg_typ, chg_val, absmin, absmax)      
-                    endif
+        !!gwflow calibration parameters (object type "gwf", ielem = cell index)
+        !! per-cell parameters use ielem directly (supports specific-object targeting)
+        case ("aquifer_K")
+          if(bsn_cc%gwflow == 1) then
+            gw_state(ielem)%hydc = chg_par(gw_state(ielem)%hydc, chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("aquifer_Sy")
+          if(bsn_cc%gwflow == 1) then
+            gw_state(ielem)%spyd = chg_par(gw_state(ielem)%spyd, chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("aquifer_delay")
+          if(bsn_cc%gwflow == 1) then
+            gw_delay(ielem) = chg_par(gw_delay(ielem), chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("aquifer_exdp")
+          if(bsn_cc%gwflow == 1) then
+            gw_state(ielem)%exdp = chg_par(gw_state(ielem)%exdp, chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("tile_K")
+          if(bsn_cc%gwflow == 1 .and. gw_tile_flag > 0) then
+            gw_tile_K(ielem) = chg_par(gw_tile_K(ielem), chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("floodplain_K")
+          if(bsn_cc%gwflow == 1 .and. gw_fp_flag > 0) then
+            gw_fp_K(ielem) = chg_par(gw_fp_K(ielem), chg_typ, chg_val, absmin, absmax)
+          endif
+
+        !! gwflow channel parameters (object type "sdc", ielem = channel index)
+        case ("stream_K")
+          if(bsn_cc%gwflow == 1) then
+            do icell=1,gw_chan_info(ielem)%ncon
+              gw_chan_info(ielem)%hydc(icell) = chg_par(gw_chan_info(ielem)%hydc(icell), chg_typ, chg_val, absmin, absmax)
+            enddo
+          endif
+
+        case ("stream_thk")
+          if(bsn_cc%gwflow == 1) then
+            do icell=1,gw_chan_info(ielem)%ncon
+              gw_chan_info(ielem)%thck(icell) = chg_par(gw_chan_info(ielem)%thck(icell), chg_typ, chg_val, absmin, absmax)
+            enddo
+          endif
+
+        case ("stream_bed")
+          if(bsn_cc%gwflow == 1) then
+            gw_bed_change = chg_par(gw_bed_change, chg_typ, chg_val, absmin, absmax)
+          endif
+
+        !! gwflow global parameters (applied once; ielem==1 guard prevents compounding)
+        case ("reservoir_K")
+          if(bsn_cc%gwflow == 1 .and. ielem == 1 .and. num_res_cells > 0) then
+            res_K = chg_par(res_K, chg_typ, chg_val, absmin, absmax)
+          endif
+
+        case ("pond_bed_K")
+          if(bsn_cc%gwflow == 1 .and. ielem == 1 .and. gw_npond > 0) then
+            do icell=1,gw_npond
+              gw_pond_info(icell)%bed_k = chg_par(gw_pond_info(icell)%bed_k, chg_typ, chg_val, absmin, absmax)
+            enddo
+          endif
 
         !! initial soil properties
         case ("lab_p")

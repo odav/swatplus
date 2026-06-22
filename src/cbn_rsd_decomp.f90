@@ -32,11 +32,12 @@
       use septic_data_module
       use basin_module
       use organic_mineral_mass_module
-      use hru_module, only : ihru, isep 
+      use hru_module, only : ihru
       use soil_module
       use plant_module
       use plant_data_module
       use output_landscape_module, only : hnb_d
+      use carbon_module, only : cnr_cap, cnr_ref, cpr_cap, cpr_ref
       
       implicit none 
 
@@ -58,11 +59,7 @@
       real :: idp = 0.      !              |plant number in plant data module
       real :: cdg = 0.      !none          |soil temperature factor
       real :: sut = 0.      !none          |soil water factor
-      real :: nactfr = 0.   !none          |nitrogen active pool fraction. The fraction
-                            !              |of organic nitrogen in the active pool. 
-
       j = ihru
-      nactfr = .02
       !zero transformations for summing layers
       hnb_d(j)%act_nit_n = 0.
       hnb_d(j)%org_lab_p = 0.
@@ -99,16 +96,16 @@
             rmp = 0.
             if (soil1(j)%pl(ipl)%rsd(k)%n > 1.e-4) then
               cnr = soil1(j)%pl(ipl)%rsd(k)%c / soil1(j)%pl(ipl)%rsd(k)%n
-              if (cnr > 500.) cnr = 500.
-              cnrf = Exp(-.693 * (cnr - 25.) / 25.)
+              if (cnr > cnr_cap) cnr = cnr_cap
+              cnrf = Exp(-.693 * (cnr - cnr_ref) / cnr_ref)    !! -.693 = -ln(2)
             else
               cnrf = 1.
             end if
-            
+
             if (soil1(j)%pl(ipl)%rsd(k)%p > 1.e-4) then
               cpr = soil1(j)%pl(ipl)%rsd(k)%c / soil1(j)%pl(ipl)%rsd(k)%p
-              if (cpr > 5000.) cpr = 5000.
-              cprf = Exp(-.693 * (cpr - 200.) / 200.)
+              if (cpr > cpr_cap) cpr = cpr_cap
+              cprf = Exp(-.693 * (cpr - cpr_ref) / cpr_ref)    !! -.693 = -ln(2)
             else
               cprf = 1.
             end if
@@ -121,6 +118,7 @@
             decr = Min(decr, 1.)
             decomp = decr * soil1(j)%pl(ipl)%rsd(k)
             soil1(j)%pl(ipl)%rsd(k) = soil1(j)%pl(ipl)%rsd(k) - decomp
+            soil1(j)%rsd_tot(k) = soil1(j)%rsd_tot(k) - decomp
 
             ! The following if statements are to prevent runtime underflow errors with gfortran 
             if (soil1(j)%pl(ipl)%rsd(k)%m < 1.e-10) soil1(j)%pl(ipl)%rsd(k)%m = 0.0 
@@ -129,13 +127,19 @@
             if (soil1(j)%pl(ipl)%rsd(k)%p < 1.e-10) soil1(j)%pl(ipl)%rsd(k)%p = 0.0 
 
             !! add mass and carbon to soil organic pools
-            soil1(j)%meta(k)%m = soil1(j)%meta(k)%m + pldb(idp)%res_part_fracs%meta_frac * decomp%m
-            soil1(j)%str(k)%m = soil1(j)%str(k)%m + pldb(idp)%res_part_fracs%str_frac * decomp%m
-            soil1(j)%lig(k)%m = soil1(j)%lig(k)%m + pldb(idp)%res_part_fracs%lig_frac * decomp%m
-            soil1(j)%meta(k)%c = soil1(j)%meta(k)%c + pldb(idp)%res_part_fracs%meta_frac * decomp%c
-            soil1(j)%str(k)%c = soil1(j)%str(k)%c + pldb(idp)%res_part_fracs%str_frac * decomp%c
-            soil1(j)%lig(k)%c = soil1(j)%lig(k)%c + pldb(idp)%res_part_fracs%lig_frac * decomp%c
+            ! soil1(j)%meta(k)%m = soil1(j)%meta(k)%m + pldb(idp)%res_part_fracs%meta_frac * decomp%m
+            ! soil1(j)%str(k)%m = soil1(j)%str(k)%m + pldb(idp)%res_part_fracs%str_frac * decomp%m
+            ! soil1(j)%lig(k)%m = soil1(j)%lig(k)%m + pldb(idp)%res_part_fracs%lig_frac * decomp%m
+            ! soil1(j)%meta(k)%c = soil1(j)%meta(k)%c + pldb(idp)%res_part_fracs%meta_frac * decomp%c
+            ! soil1(j)%str(k)%c = soil1(j)%str(k)%c + pldb(idp)%res_part_fracs%str_frac * decomp%c
+            ! soil1(j)%lig(k)%c = soil1(j)%lig(k)%c + pldb(idp)%res_part_fracs%lig_frac * decomp%c
             
+            soil1(j)%meta(k)%m = soil1(j)%meta(k)%m + cswat_1_part_fracs(idp)%meta_frac_blg * decomp%m
+            soil1(j)%str(k)%m  = soil1(j)%str(k)%m  + cswat_1_part_fracs(idp)%str_frac_blg  * decomp%m
+            soil1(j)%lig(k)%m  = soil1(j)%lig(k)%m  + cswat_1_part_fracs(idp)%lig_frac_blg  * decomp%m
+            soil1(j)%meta(k)%c = soil1(j)%meta(k)%c + cswat_1_part_fracs(idp)%meta_frac_blg * decomp%c
+            soil1(j)%str(k)%c  = soil1(j)%str(k)%c  + cswat_1_part_fracs(idp)%str_frac_blg  * decomp%c
+            soil1(j)%lig(k)%c  = soil1(j)%lig(k)%c  + cswat_1_part_fracs(idp)%lig_frac_blg  * decomp%c
             !! add nitrogen and phosphorus to soil organic pools - assume c/n and c/p ratios
             !! c/n=10 for metabolic and 150 for structural; c/p=100 for metabolic and 1500 for structural
             !! solve ntot = nmeta + nstr  &  nmet = 15.* nstr * cmet/cstr

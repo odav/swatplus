@@ -42,8 +42,8 @@
                   basin_aquifer_output, basin_ch_pest_output, basin_chanbud_output, basin_chanmorph_output, &
                   basin_channel_output, basin_ls_pest_output, basin_output, basin_recall_output, &
                   basin_res_pest_output, basin_reservoir_output, basin_sdchannel_output, cs_balance, &
-                  lsu_output, salt_balance, hyddep_output, recall_salt, recall_cs, soil_nutcarb_write, &
-                  soil_carbvar_write
+                  lsu_output, lsu_carbon_output, salt_balance, hyddep_output, recall_salt, recall_cs, soil_nutcarb_write, &
+                  soil_carbvar_write, soil_nutcarb_write_legacy, soil_carbvar_write_legacy
 
       real, dimension(time%step) :: hyd_flo     !flow hydrograph
       integer :: in = 0               !              | 
@@ -68,11 +68,12 @@
       integer :: i_count = 0          !rtb gwflow
       integer :: i_mfl = 0            !rtb gwflow    |counter
       integer :: i_chan = 0           !rtb gwflow    |counter
+      integer :: iob_chan = 0        !rtb gwflow    |ob index for channel
       real :: sumflo = 0.
 
       icmd = sp_ob1%objs
       wallo(:)%trn_cur = 1
-      res_ob(:)%wallo_call = 0
+      if (allocated(res_ob)) res_ob(:)%wallo_call = 0
       
       do while (icmd /= 0)
           
@@ -516,21 +517,48 @@
             end do
           end if
                          
-        if (pco%cb_hru%d == "y") call soil_nutcarb_write(" d")
-        if (pco%cb_hru%d == "l") call soil_nutcarb_write("dl")
-        if (pco%cb_hru%m == "y" .and. time%end_mo == 1) call soil_nutcarb_write(" m")
-        if (pco%cb_hru%m == "l" .and. time%end_mo == 1) call soil_nutcarb_write("ml")
-        if (pco%cb_hru%y == "y" .and. time%end_yr == 1) call soil_nutcarb_write(" y") 
-        if (pco%cb_hru%y == "l" .and. time%end_yr == 1) call soil_nutcarb_write("yl") 
-        ! if (pco%cb_hru%a == "y" .and. time%end_yr == 1) call soil_nutcarb_write("a")
-        if (pco%cb_vars_hru%d == "y") call soil_carbvar_write("d")
-        if (pco%cb_vars_hru%d == "l") call soil_carbvar_write("dl")
-        if (pco%cb_vars_hru%m == "y" .and. time%end_mo == 1) call soil_carbvar_write("m")
-        if (pco%cb_vars_hru%m == "l" .and. time%end_mo == 1) call soil_carbvar_write("ml")
-        if (pco%cb_vars_hru%y == "y" .and. time%end_yr == 1) call soil_carbvar_write("y")
-        if (pco%cb_vars_hru%y == "l" .and. time%end_yr == 1) call soil_carbvar_write("yl")
-        
-        end do      ! hru loop  
+          !! dispatch soil_nutcarb_write whenever any of the 6 nutcarb-controlled families is on for this timestep.
+          !! Per-family gating happens inside each cb_*_emit subroutine in soil_nutcarb_write.
+          if (pco%cb_lyr_hru%d == "y" .or. pco%cb_cpool_hru%d == "y" .or. pco%cb_npool_hru%d == "y" .or. &
+              pco%cb_plt_hru%d == "y" .or. pco%cb_flux_hru%d == "y" .or. pco%cb_snap_hru%d == "y") &
+            call soil_nutcarb_write(" d")
+          if (time%end_mo == 1 .and. (pco%cb_lyr_hru%m == "y" .or. pco%cb_cpool_hru%m == "y" .or. pco%cb_npool_hru%m == "y" .or. &
+              pco%cb_plt_hru%m == "y" .or. pco%cb_flux_hru%m == "y" .or. pco%cb_snap_hru%m == "y")) &
+            call soil_nutcarb_write(" m")
+          if (time%end_yr == 1 .and. (pco%cb_lyr_hru%y == "y" .or. pco%cb_cpool_hru%y == "y" .or. pco%cb_npool_hru%y == "y" .or. &
+              pco%cb_plt_hru%y == "y" .or. pco%cb_flux_hru%y == "y" .or. pco%cb_snap_hru%y == "y")) &
+            call soil_nutcarb_write(" y")
+          if (time%end_sim == 1 .and. (pco%cb_lyr_hru%a == "y" .or. pco%cb_cpool_hru%a == "y" .or. pco%cb_npool_hru%a == "y" .or. &
+              pco%cb_plt_hru%a == "y" .or. pco%cb_flux_hru%a == "y" .or. pco%cb_snap_hru%a == "y")) &
+            call soil_nutcarb_write(" a")
+
+          if (bsn_cc%cswat == 2) then
+            if (pco%cb_drv_hru%d == "y" .or. pco%cb_dyn_hru%d == "y") call soil_carbvar_write(" d")
+            if (time%end_mo == 1 .and. (pco%cb_drv_hru%m == "y" .or. pco%cb_dyn_hru%m == "y")) call soil_carbvar_write(" m")
+            if (time%end_yr == 1 .and. (pco%cb_drv_hru%y == "y" .or. pco%cb_dyn_hru%y == "y")) call soil_carbvar_write(" y")
+            if (time%end_sim == 1 .and. (pco%cb_drv_hru%a == "y" .or. pco%cb_dyn_hru%a == "y")) call soil_carbvar_write(" a")
+          endif
+
+          !! legacy CSU carbon outputs, gated by the hru_cb row in print.prt
+          !! will be removed in revision 63.
+          if (pco%cb_hru%d == "y") call soil_nutcarb_write_legacy(" d")
+          if (pco%cb_hru%d == "l") call soil_nutcarb_write_legacy("dl")
+          if (pco%cb_hru%m == "y" .and. time%end_mo == 1) call soil_nutcarb_write_legacy(" m")
+          if (pco%cb_hru%m == "l" .and. time%end_mo == 1) call soil_nutcarb_write_legacy("ml")
+          if (pco%cb_hru%y == "y" .and. time%end_yr == 1) call soil_nutcarb_write_legacy(" y")
+          if (pco%cb_hru%y == "l" .and. time%end_yr == 1) call soil_nutcarb_write_legacy("yl")
+
+          !! legacy CSU carbon variable outputs, gated by the hru_cb_vars row in print.prt
+          if (bsn_cc%cswat == 2) then
+            if (pco%cb_vars_hru%d == "y") call soil_carbvar_write_legacy(" d")
+            if (pco%cb_vars_hru%d == "l") call soil_carbvar_write_legacy("dl")
+            if (pco%cb_vars_hru%m == "y" .and. time%end_mo == 1) call soil_carbvar_write_legacy(" m")
+            if (pco%cb_vars_hru%m == "l" .and. time%end_mo == 1) call soil_carbvar_write_legacy("ml")
+            if (pco%cb_vars_hru%y == "y" .and. time%end_yr == 1) call soil_carbvar_write_legacy(" y")
+            if (pco%cb_vars_hru%y == "l" .and. time%end_yr == 1) call soil_carbvar_write_legacy("yl")
+          endif
+
+        end do      ! hru loop
         
         do iaq = 1, sp_ob%aqu
           call aquifer_output (iaq)
@@ -605,6 +633,7 @@
         if (sp_ob%aqu > 0 .and. cs_db%num_pests > 0) call basin_aqu_pest_output
         if (db_mx%lsu_elem > 0) call basin_output
         if (db_mx%lsu_out > 0) call lsu_output
+        if (db_mx%lsu_out > 0) call lsu_carbon_output  !! LSU-level carbon output
         if (db_mx%aqu_elem > 0) call basin_aquifer_output
         !if (sp_ob%aqu > 0) call basin_aquifer_output !rtb - otherwise, aquifer output is not called
         if (sp_ob%res > 0) call basin_reservoir_output
@@ -628,11 +657,14 @@
       gw_daycount = gw_daycount + 1
       
       !rtb hydrograph separation
-      !write out hydrograph components for selected channels
+      !write out hydrograph components for all channels
       if (bsn_cc%gwflow == 1) then
       do i_chan=1,sp_ob%chandeg
         if(hydsep_flag(i_chan) == 1) then
-          write(out_hyd_sep,102) time%yrc,time%day,i_chan,(hyd_sep_array(i_chan,i_count),i_count=1,7)
+          iob_chan = sp_ob1%chandeg + i_chan - 1
+          write(out_hyd_sep,8102) time%day,time%mo,time%day_mo,time%yrc, &
+            i_chan,ob(iob_chan)%gis_id,ob(iob_chan)%name, &
+            (hyd_sep_array(i_chan,i_count),i_count=1,7)
         endif
       enddo
       endif
@@ -657,7 +689,8 @@
       enddo
       
 102   format(i6,11x,i3,8x,i5,5x,1000(f16.4))
-103   format(4i6,2i8,2x,a,35f12.3)      
+103   format(4i6,2i8,2x,a,35f12.3)
+8102  format(4i6,2i8,a18,7e13.4)      
 
       return
       end subroutine command

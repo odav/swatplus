@@ -353,8 +353,33 @@
                      result = print_prt_error(name)
                   else
                      backspace (107)
-                     read (107,*,iostat=eof) name, pco%pw_lsu%d, pco%pw_lsu%m, pco%pw_lsu%y, pco%pw_lsu%a  
+                     read (107,*,iostat=eof) name, pco%pw_lsu%d, pco%pw_lsu%m, pco%pw_lsu%y, pco%pw_lsu%a
                      pco%pw_lsu%already_read_in = .true.
+                  endif
+               !! LSU-level carbon families
+               case("lsu_cb_gl")
+                  if (pco%cb_gl_lsu%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_gl_lsu%d, pco%cb_gl_lsu%m, pco%cb_gl_lsu%y, pco%cb_gl_lsu%a
+                     pco%cb_gl_lsu%already_read_in = .true.
+                  endif
+               case("lsu_cb_trf")
+                  if (pco%cb_trf_lsu%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_trf_lsu%d, pco%cb_trf_lsu%m, pco%cb_trf_lsu%y, pco%cb_trf_lsu%a
+                     pco%cb_trf_lsu%already_read_in = .true.
+                  endif
+               case("lsu_cb_plt")
+                  if (pco%cb_plt_lsu%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_plt_lsu%d, pco%cb_plt_lsu%m, pco%cb_plt_lsu%y, pco%cb_plt_lsu%a
+                     pco%cb_plt_lsu%already_read_in = .true.
                   endif
                case("hru_wb")
                   if (pco%wb_hru%already_read_in) then
@@ -401,8 +426,89 @@
                      result = print_prt_error(name)
                   else
                      backspace (107)
-                     read (107,*,iostat=eof) name, pco%cb_vars_hru%d, pco%cb_vars_hru%m, pco%cb_vars_hru%y, pco%cb_vars_hru%a  
-                     pco%cb_hru%already_read_in = .true.
+                     read (107,*,iostat=eof) name, pco%cb_vars_hru%d, pco%cb_vars_hru%m, pco%cb_vars_hru%y, pco%cb_vars_hru%a
+                     pco%cb_vars_hru%already_read_in = .true.   !! was wrongly setting pco%cb_hru%already_read_in
+                  endif
+               !! per-family carbon flags (10 rows)
+               case("hru_cb_gl")
+                  if (pco%cb_gl_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_gl_hru%d, pco%cb_gl_hru%m, pco%cb_gl_hru%y, pco%cb_gl_hru%a
+                     pco%cb_gl_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_trf")
+                  if (pco%cb_trf_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_trf_hru%d, pco%cb_trf_hru%m, pco%cb_trf_hru%y, pco%cb_trf_hru%a
+                     pco%cb_trf_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_lyr")
+                  if (pco%cb_lyr_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_lyr_hru%d, pco%cb_lyr_hru%m, pco%cb_lyr_hru%y, pco%cb_lyr_hru%a
+                     pco%cb_lyr_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_cpool")
+                  if (pco%cb_cpool_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_cpool_hru%d, pco%cb_cpool_hru%m, pco%cb_cpool_hru%y, pco%cb_cpool_hru%a
+                     pco%cb_cpool_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_npool")
+                  if (pco%cb_npool_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_npool_hru%d, pco%cb_npool_hru%m, pco%cb_npool_hru%y, pco%cb_npool_hru%a
+                     pco%cb_npool_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_plt")
+                  if (pco%cb_plt_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_plt_hru%d, pco%cb_plt_hru%m, pco%cb_plt_hru%y, pco%cb_plt_hru%a
+                     pco%cb_plt_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_flux")
+                  if (pco%cb_flux_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_flux_hru%d, pco%cb_flux_hru%m, pco%cb_flux_hru%y, pco%cb_flux_hru%a
+                     pco%cb_flux_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_drv")
+                  if (pco%cb_drv_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_drv_hru%d, pco%cb_drv_hru%m, pco%cb_drv_hru%y, pco%cb_drv_hru%a
+                     pco%cb_drv_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_dyn")
+                  if (pco%cb_dyn_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_dyn_hru%d, pco%cb_dyn_hru%m, pco%cb_dyn_hru%y, pco%cb_dyn_hru%a
+                     pco%cb_dyn_hru%already_read_in = .true.
+                  endif
+               case("hru_cb_snap")
+                  if (pco%cb_snap_hru%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%cb_snap_hru%d, pco%cb_snap_hru%m, pco%cb_snap_hru%y, pco%cb_snap_hru%a
+                     pco%cb_snap_hru%already_read_in = .true.
                   endif
                case("hru-lte_wb")
                   if (pco%wb_sd%already_read_in) then
@@ -612,6 +718,54 @@
                      backspace (107)
                      read (107,*,iostat=eof) name, pco%cs_wet%d, pco%cs_wet%m, pco%cs_wet%y, pco%cs_wet%a  
                      pco%cs_wet%already_read_in = .true.
+                  endif
+               case("gwflow_wb")
+                  if (pco%gwflow_wb%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_wb%d, pco%gwflow_wb%m, pco%gwflow_wb%y, pco%gwflow_wb%a
+                     pco%gwflow_wb%already_read_in = .true.
+                  endif
+               case("gwflow_flux")
+                  if (pco%gwflow_flux%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_flux%d, pco%gwflow_flux%m, pco%gwflow_flux%y, pco%gwflow_flux%a
+                     pco%gwflow_flux%already_read_in = .true.
+                  endif
+               case("gwflow_heat")
+                  if (pco%gwflow_heat%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_heat%d, pco%gwflow_heat%m, pco%gwflow_heat%y, pco%gwflow_heat%a
+                     pco%gwflow_heat%already_read_in = .true.
+                  endif
+               case("gwflow_solute")
+                  if (pco%gwflow_solute%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_solute%d, pco%gwflow_solute%m, pco%gwflow_solute%y, pco%gwflow_solute%a
+                     pco%gwflow_solute%already_read_in = .true.
+                  endif
+               case("gwflow_obs")
+                  if (pco%gwflow_obs%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_obs%d, pco%gwflow_obs%m, pco%gwflow_obs%y, pco%gwflow_obs%a
+                     pco%gwflow_obs%already_read_in = .true.
+                  endif
+               case("gwflow_pump")
+                  if (pco%gwflow_pump%already_read_in) then
+                     result = print_prt_error(name)
+                  else
+                     backspace (107)
+                     read (107,*,iostat=eof) name, pco%gwflow_pump%d, pco%gwflow_pump%m, pco%gwflow_pump%y, pco%gwflow_pump%a
+                     pco%gwflow_pump%already_read_in = .true.
                   endif
                case default
                   write(*, fmt="(a,a,a)", advance="yes") "Error: The output object ", name, "in the input file print.prt is not a valid object."
