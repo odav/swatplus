@@ -158,6 +158,174 @@
                 "CMAKE_INSTALL_PREFIX": "build/release",
                 "CMAKE_Fortran_COMPILER": "ifort"
             }
+        },
+        {
+            "name": "gfortran_debug_windows_nc",
+            "displayName": "gfortran debug version with NetCDF",
+            "description": "Builds a gfortran debug executable for swatplus with NetCDF support for windows",
+            "binaryDir": "build/debug_nc",
+            "generator": "Ninja",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "build/debug_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "gfortran_debug_linux_nc",
+            "displayName": "gfortran debug version with NetCDF",
+            "description": "Builds a gfortran debug executable for swatplus with NetCDF support for linux",
+            "binaryDir": "build/debug_nc",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "build/debug_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "gfortran_debug_macbook_nc",
+            "displayName": "gfortran debug version with NetCDF",
+            "description": "Builds a gfortran debug executable for swatplus with NetCDF support for macbook",
+            "binaryDir": "build/debug_nc",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "build/debug_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "ifx_debug_nc",
+            "displayName": "ifx debug version with NetCDF",
+            "description": "Preset to builds a ifx debug executable for swatplus with NetCDF support",
+            "binaryDir": "build/debug_nc",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "build/debug_nc",
+                "CMAKE_Fortran_COMPILER": "ifx",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "ifort_debug_nc",
+            "displayName": "ifort debug version with NetCDF",
+            "description": "Preset to builds ifort debug executable for swatplus with NetCDF support",
+            "binaryDir": "build/debug_nc",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_PREFIX": "build/debug_nc",
+                "CMAKE_Fortran_COMPILER": "ifort",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "gfortran_release_windows_nc",
+            "displayName": "gfortran release version with NetCDF",
+            "description": "Builds a gfortran release executable for swatplus with NetCDF support for windows",
+            "binaryDir": "build/release_nc",
+            "generator": "Ninja",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": "build/release_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "gfortran_release_linux_nc",
+            "displayName": "gfortran release version with NetCDF",
+            "description": "Builds a gfortran release executable for swatplus with NetCDF support for linux",
+            "binaryDir": "build/release_nc",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": "build/release_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "gfortran_release_macbook_nc",
+            "displayName": "gfortran release version with NetCDF",
+            "description": "Builds a gfortran release executable for swatplus with NetCDF support for macbook",
+            "binaryDir": "build/release_nc",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": "build/release_nc",
+                "CMAKE_Fortran_COMPILER": "gfortran",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "ifx_release_nc",
+            "displayName": "ifx release version with NetCDF",
+            "description": "Preset to builds a ifx release executable for swatplus with NetCDF support",
+            "binaryDir": "build/release_nc",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": "build/release_nc",
+                "CMAKE_Fortran_COMPILER": "ifx",
+                "ENABLE_NETCDF": "ON"
+            }
+        },
+        {
+            "name": "ifort_release_nc",
+            "displayName": "ifort release version with NetCDF",
+            "description": "Preset to builds ifort release executable for swatplus with NetCDF support",
+            "binaryDir": "build/release_nc",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": "build/release_nc",
+                "CMAKE_Fortran_COMPILER": "ifort",
+                "ENABLE_NETCDF": "ON"
+            }
         }
     ]
 }
